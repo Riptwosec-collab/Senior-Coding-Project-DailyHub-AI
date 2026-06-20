@@ -4,7 +4,7 @@ const openAiModes: OpenAiMode[] = ["mock", "real"];
 const telegramModes: TelegramMode[] = ["off", "on"];
 const schedulerModes: SchedulerMode[] = ["manual", "daily-cron", "external"];
 
-const defaultSettings: DailyHubSettings = {
+export const defaultSettings: DailyHubSettings = {
   openAiMode: process.env.ENABLE_OPENAI === "true" ? "real" : "mock",
   telegramMode: process.env.ENABLE_TELEGRAM === "true" ? "on" : "off",
   schedulerMode: process.env.ENABLE_SCHEDULER === "true" ? "daily-cron" : "manual",
@@ -24,7 +24,7 @@ declare global {
 
 export function getDailyHubSettings() {
   if (!globalThis.dailyHubSettings) {
-    globalThis.dailyHubSettings = { ...defaultSettings };
+    globalThis.dailyHubSettings = { ...defaultSettings, updatedAt: new Date().toISOString() };
   }
 
   return globalThis.dailyHubSettings;
@@ -44,10 +44,11 @@ function normalizeNumber(value: unknown, fallback: number) {
   return Math.min(Math.max(Math.round(parsed), 0), 100);
 }
 
-export function updateDailyHubSettings(input: UpdateDailyHubSettingsInput) {
-  const current = getDailyHubSettings();
-
-  const next: DailyHubSettings = {
+export function normalizeDailyHubSettings(
+  input: UpdateDailyHubSettingsInput,
+  current: DailyHubSettings = getDailyHubSettings(),
+): DailyHubSettings {
+  return {
     openAiMode: openAiModes.includes(input.openAiMode as OpenAiMode) ? (input.openAiMode as OpenAiMode) : current.openAiMode,
     telegramMode: telegramModes.includes(input.telegramMode as TelegramMode) ? (input.telegramMode as TelegramMode) : current.telegramMode,
     schedulerMode: schedulerModes.includes(input.schedulerMode as SchedulerMode) ? (input.schedulerMode as SchedulerMode) : current.schedulerMode,
@@ -59,7 +60,10 @@ export function updateDailyHubSettings(input: UpdateDailyHubSettingsInput) {
     minDefaultPriorityScore: normalizeNumber(input.minDefaultPriorityScore, current.minDefaultPriorityScore),
     updatedAt: new Date().toISOString(),
   };
+}
 
+export function updateDailyHubSettings(input: UpdateDailyHubSettingsInput) {
+  const next = normalizeDailyHubSettings(input, getDailyHubSettings());
   globalThis.dailyHubSettings = next;
   return next;
 }

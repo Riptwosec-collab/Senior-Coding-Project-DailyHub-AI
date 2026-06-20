@@ -23,9 +23,18 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# env files
-.env*
+# env files - keep secrets out of GitHub
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# allow safe examples only
 !.env.example
+!.env.final.example
+!.env.phase18.example
 
 # vercel
 .vercel

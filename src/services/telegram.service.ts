@@ -18,6 +18,18 @@ const DEFAULT_TOPIC_META: TelegramTopicMeta = {
   shortLabel: "General",
 };
 
+const TOPIC_META = {
+  email: { emoji: "📧", label: "Email Monitor", shortLabel: "Email" },
+  sale: { emoji: "💸", label: "Sale Monitor", shortLabel: "Sale" },
+  football: { emoji: "⚽", label: "Football Recap", shortLabel: "Football" },
+  concert: { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" },
+  weather: { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" },
+  weekendIdeas: { emoji: "🧭", label: "Weekend Ideas", shortLabel: "Ideas" },
+  weekendLongRead: { emoji: "📚", label: "Weekend Long Read", shortLabel: "Long Read" },
+  dailyBrief: { emoji: "📰", label: "Daily Brief / News", shortLabel: "News" },
+  test: { emoji: "🧪", label: "Telegram Test", shortLabel: "Test" },
+} satisfies Record<string, TelegramTopicMeta>;
+
 export function getTelegramModeStatus() {
   const enabled = process.env.ENABLE_TELEGRAM === "true";
   const hasToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
@@ -57,44 +69,35 @@ function safeArray(value: unknown): unknown[] {
 function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
   const text = normalizeKey(values.filter(Boolean).join(" "));
 
-  if (/email|gmail|mail|inbox|อีเมล/.test(text)) {
-    return { emoji: "📧", label: "Email Monitor", shortLabel: "Email" };
-  }
-  if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) {
-    return { emoji: "💸", label: "Sale Monitor", shortLabel: "Sale" };
-  }
-  if (/football|soccer|world cup|match|score|premier|บอล|ฟุตบอล/.test(text)) {
-    return { emoji: "⚽", label: "Football Recap", shortLabel: "Football" };
-  }
-  if (/concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน|บัตร/.test(text)) {
-    return { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" };
-  }
-  if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(text)) {
-    return { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" };
-  }
-  if (/weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/.test(text)) {
-    return { emoji: "🧭", label: "Weekend Ideas", shortLabel: "Ideas" };
-  }
-  if (/weekend long read|long read|article|read|บทความ|อ่านยาว/.test(text)) {
-    return { emoji: "📚", label: "Weekend Long Read", shortLabel: "Long Read" };
-  }
-  if (/daily brief|brief|news|headline|ข่าว|สรุป/.test(text)) {
-    return { emoji: "📰", label: "Daily Brief / News", shortLabel: "News" };
-  }
-  if (/telegram test|test|ทดสอบ/.test(text)) {
-    return { emoji: "🧪", label: "Telegram Test", shortLabel: "Test" };
-  }
+  if (/email|gmail|mail|inbox|อีเมล/.test(text)) return TOPIC_META.email;
+  if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) return TOPIC_META.sale;
+  if (/football|soccer|world cup|match|score|premier|บอล|ฟุตบอล/.test(text)) return TOPIC_META.football;
+  if (/concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน|บัตร/.test(text)) return TOPIC_META.concert;
+  if (/weekend long read|long read|article|read|บทความ|อ่านยาว/.test(text)) return TOPIC_META.weekendLongRead;
+  if (/weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/.test(text)) return TOPIC_META.weekendIdeas;
+  if (/daily brief|brief|news|headline|ข่าว|สรุป/.test(text)) return TOPIC_META.dailyBrief;
+  if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(text)) return TOPIC_META.weather;
+  if (/telegram test|test|ทดสอบ/.test(text)) return TOPIC_META.test;
 
   return DEFAULT_TOPIC_META;
 }
 
 function getTaskTopicMeta(task: ScheduledTask): TelegramTopicMeta {
-  return getTopicMetaFromText(
-    task.type,
-    task.name,
-    safeArray(task.dataSources).map(String).join(" "),
-    safeArray(task.gptActions).map(String).join(" "),
-  );
+  const taskText = normalizeKey(`${task.type} ${task.name}`);
+
+  // The header must identify the task itself first. Data sources like Weather API
+  // should not rename Morning Daily Brief into Weather Update.
+  if (/daily brief|morning daily brief|brief/.test(taskText)) return TOPIC_META.dailyBrief;
+  if (/world cup recap|football recap|football|soccer|บอล|ฟุตบอล/.test(taskText)) return TOPIC_META.football;
+  if (/weekend long read|long read|reading list|อ่านยาว/.test(taskText)) return TOPIC_META.weekendLongRead;
+  if (/weekend ideas|weekend idea|ideas generator|ไอเดีย/.test(taskText)) return TOPIC_META.weekendIdeas;
+  if (/email monitor|important email|gmail|อีเมล/.test(taskText)) return TOPIC_META.email;
+  if (/sale monitor|sale|shopee|deal|discount|promo|ลดราคา|โปร/.test(taskText)) return TOPIC_META.sale;
+  if (/concert alerts|concert|artist|ticket|คอนเสิร์ต|ศิลปิน|บัตร/.test(taskText)) return TOPIC_META.concert;
+  if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(taskText)) return TOPIC_META.weather;
+  if (/telegram test|test|ทดสอบ/.test(taskText)) return TOPIC_META.test;
+
+  return getTopicMetaFromText(task.type, task.name);
 }
 
 function getSourceTopicMeta(sourceName: string): TelegramTopicMeta {

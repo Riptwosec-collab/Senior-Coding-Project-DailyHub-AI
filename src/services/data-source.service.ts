@@ -7,6 +7,7 @@ import { fetchNewsUpdates } from "./news.service";
 import { fetchSaleUpdates } from "./sale-monitor.service";
 import { fetchWeatherUpdates } from "./weather.service";
 import { fetchWeekendIdeasInput } from "./weekend-ideas.service";
+import { fetchWeekendLongReadUpdates } from "./weekend-long-read.service";
 
 export interface StandardDataSourcePayload {
   title: string;
@@ -57,18 +58,43 @@ async function safeSource(source: string, handler: () => Promise<DataSourceResul
   }
 }
 
+function sourceHandler(source: string, task: ScheduledTask) {
+  if (source === "News") return () => fetchNewsUpdates(task);
+  if (source === "Gmail") return () => fetchEmailUpdates(task);
+  if (source === "Product Prices") return () => fetchSaleUpdates(task);
+  if (source === "Football API") return () => fetchFootballUpdates(task);
+  if (source === "Weather API") return () => fetchWeatherUpdates(task);
+  if (source === "Concert API") return () => fetchConcertUpdates(task);
+  if (source === "Weekend Ideas") return () => fetchWeekendIdeasInput(task);
+  if (source === "Weekend Long Read") return () => fetchWeekendLongReadUpdates(task);
+  return () => fetchNewsUpdates(task);
+}
+
+function getEffectiveSources(task: ScheduledTask) {
+  const sources = task.dataSources.length > 0 ? [...task.dataSources] : ["News"];
+
+  // Some task types need their own structured payload even when the UI shows
+  // generic sources such as News or Weather API. This ensures Telegram gets
+  // dedicated Weekend / Football sections instead of only raw news/weather.
+  if (task.type === "Weekend Ideas" && !sources.includes("Weekend Ideas")) {
+    sources.unshift("Weekend Ideas");
+  }
+
+  if (task.type === "Weekend Long Read" && !sources.includes("Weekend Long Read")) {
+    sources.unshift("Weekend Long Read");
+  }
+
+  if (task.type === "World Cup Recap" && !sources.includes("Football API")) {
+    sources.unshift("Football API");
+  }
+
+  return Array.from(new Set(sources));
+}
+
 export async function collectTaskDataSources(task: ScheduledTask) {
-  const sources = task.dataSources.length > 0 ? task.dataSources : ["News"];
+  const sources = getEffectiveSources(task);
   const results = await Promise.all(
-    sources.map((source) => {
-      if (source === "News") return safeSource(source, () => fetchNewsUpdates(task));
-      if (source === "Gmail") return safeSource(source, () => fetchEmailUpdates(task));
-      if (source === "Product Prices") return safeSource(source, () => fetchSaleUpdates(task));
-      if (source === "Football API") return safeSource(source, () => fetchFootballUpdates(task));
-      if (source === "Weather API") return safeSource(source, () => fetchWeatherUpdates(task));
-      if (source === "Concert API") return safeSource(source, () => fetchConcertUpdates(task));
-      return safeSource(source, () => fetchWeekendIdeasInput(task));
-    }),
+    sources.map((source) => safeSource(source, sourceHandler(source, task))),
   );
 
   return {

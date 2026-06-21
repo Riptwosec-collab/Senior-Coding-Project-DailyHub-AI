@@ -29,7 +29,7 @@ export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
 
 export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; run: TaskRun }) {
   if (!task.outputChannels.includes("Send Telegram")) return { status: "not_enabled", message: "Task does not enable Telegram" };
-  if (run.priorityScore < task.minPriorityScore) return { status: "skipped_priority", message: "Priority below threshold" };
+  if (run.priorityScore < task.minPriorityScore) return { status: "skipped_priority", message: `Priority ${run.priorityScore} is below threshold ${task.minPriorityScore}` };
 
   const enabled = process.env.ENABLE_TELEGRAM === "true";
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -48,8 +48,10 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
       body: JSON.stringify({ chat_id: chatId, text: buildTelegramMessage(task, run) }),
     });
 
-    if (!response.ok) throw new Error(`Telegram API failed: ${response.status}`);
-    return { status: "sent", message: "Telegram message sent" };
+    const responseText = await response.text();
+    if (!response.ok) throw new Error(`Telegram API failed: ${response.status} ${responseText}`);
+
+    return { status: "sent", message: "Telegram message sent", response: responseText };
   } catch (error) {
     if (fallback) return { status: "mock_sent_fallback", message: error instanceof Error ? error.message : "Telegram fallback" };
     return { status: "failed", message: error instanceof Error ? error.message : "Telegram failed" };

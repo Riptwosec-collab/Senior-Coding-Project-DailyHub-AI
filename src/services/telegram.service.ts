@@ -22,7 +22,9 @@ function getThaiBullets(run: TaskRun) {
 
 export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
-  return `🧠 DailyHub AI\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแหล่งที่มา:\n${translation?.originalSource ?? task.dataSources.join(", ") || task.type}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString()}`;
+  const source = translation?.originalSource ?? (task.dataSources.join(", ") || task.type);
+
+  return `🧠 DailyHub AI\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString()}`;
 }
 
 export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; run: TaskRun }) {
@@ -55,6 +57,7 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
 }
 
 export async function sendTelegramTestMessage(message = "DailyHub AI Telegram test") {
+  const now = new Date().toISOString();
   const fakeTask = {
     id: "test",
     userId: "user_001",
@@ -72,16 +75,16 @@ export async function sendTelegramTestMessage(message = "DailyHub AI Telegram te
     isActive: true,
     lastRunAt: null,
     nextRunAt: null,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
   } as ScheduledTask;
 
   const fakeRun = {
     id: "test_run",
     taskId: "test",
     status: "success",
-    startedAt: new Date().toISOString(),
-    finishedAt: new Date().toISOString(),
+    startedAt: now,
+    finishedAt: now,
     rawInput: {},
     gptPrompt: "",
     gptOutput: {
@@ -96,7 +99,7 @@ export async function sendTelegramTestMessage(message = "DailyHub AI Telegram te
     telegramStatus: "pending",
     errorMessage: null,
     language: "th",
-    translatedAt: new Date().toISOString(),
+    translatedAt: now,
     originalContent: message,
     translatedContent: message,
   } as TaskRun;

@@ -198,7 +198,7 @@ function formatSourceItem(item: unknown, index: number) {
   }
 
   const idea = asString(record.idea);
-  const location = asString(record.location);
+  const ideaLocation = asString(record.location);
   const budget = asString(record.budget);
   const mood = asString(record.mood);
   const bestTime = asString(record.bestTime);
@@ -207,7 +207,7 @@ function formatSourceItem(item: unknown, index: number) {
   if (idea || budget || bestTime || why) {
     return [
       `${index + 1}. 🧭 ไอเดีย: ${truncate(idea || "Weekend idea", 160)}`,
-      location ? `สถานที่: ${truncate(location, 120)}` : "",
+      ideaLocation ? `สถานที่: ${truncate(ideaLocation, 120)}` : "",
       budget ? `งบประมาณ: ${truncate(budget, 80)}` : "",
       mood ? `อารมณ์/สไตล์: ${truncate(mood, 80)}` : "",
       bestTime ? `เวลาที่เหมาะ: ${truncate(bestTime, 80)}` : "",
@@ -225,10 +225,10 @@ function formatSourceItem(item: unknown, index: number) {
 
   const forecast = asRecord(record.forecast);
   const current = asRecord(forecast?.current);
-  const location = asString(record.location);
-  if (location || current) {
+  const weatherLocation = asString(record.location);
+  if (weatherLocation || current) {
     return [
-      `${index + 1}. 🌦️ สภาพอากาศ${location ? `: ${location}` : ""}`,
+      `${index + 1}. 🌦️ สภาพอากาศ${weatherLocation ? `: ${weatherLocation}` : ""}`,
       current?.temperature_2m !== undefined ? `อุณหภูมิ: ${current.temperature_2m}°C` : "",
       current?.rain !== undefined ? `ฝน: ${current.rain} mm` : "",
       current?.precipitation !== undefined ? `ปริมาณฝน: ${current.precipitation} mm` : "",

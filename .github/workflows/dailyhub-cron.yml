@@ -5,6 +5,15 @@ on:
     # Run every 15 minutes. GitHub schedules use UTC.
     - cron: "*/15 * * * *"
   workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Run all active tasks now, ignoring nextRunAt. Use for manual testing."
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 jobs:
   trigger-cron-api:
@@ -36,10 +45,21 @@ jobs:
         env:
           CRON_URL: ${{ secrets.CRON_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          FORCE_RUN: ${{ github.event.inputs.force_run || 'false' }}
         run: |
           set -euo pipefail
 
-          response=$(curl -sS -L -w "\n%{http_code}" -X GET "${CRON_URL}" \
+          target_url="${CRON_URL}"
+          if [ "${FORCE_RUN}" = "true" ]; then
+            separator="?"
+            if echo "${target_url}" | grep -q "?"; then
+              separator="&"
+            fi
+            target_url="${target_url}${separator}force=true"
+            echo "Force run is enabled for this manual workflow run."
+          fi
+
+          response=$(curl -sS -L -w "\n%{http_code}" -X GET "${target_url}" \
             -H "Authorization: Bearer ${CRON_SECRET}")
 
           body=$(echo "$response" | sed '$d')

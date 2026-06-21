@@ -17,6 +17,10 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unknown scheduler error";
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   if (process.env.ENABLE_SCHEDULER === "false") {
     return {
@@ -34,8 +38,13 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
   const dueTasks = force ? await listScheduledTasks() : await listDueScheduledTasks(checkedAt);
   const results = [];
 
-  for (const task of dueTasks) {
+  for (const [index, task] of dueTasks.entries()) {
     try {
+      if (force && index > 0) {
+        // Avoid Telegram / AI provider burst limits during manual all-task tests.
+        await sleep(900);
+      }
+
       const taskForRun = force
         ? await updateScheduledTask(task.id, {
             outputChannels: withTelegramChannel(task.outputChannels),

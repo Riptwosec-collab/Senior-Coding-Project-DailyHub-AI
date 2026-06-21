@@ -5,6 +5,18 @@ const TELEGRAM_SAFE_LIMIT = 3600;
 const MAX_SOURCE_ITEMS = 5;
 const MAX_FIELD_LENGTH = 280;
 
+type TelegramTopicMeta = {
+  emoji: string;
+  label: string;
+  shortLabel: string;
+};
+
+const DEFAULT_TOPIC_META: TelegramTopicMeta = {
+  emoji: "🧠",
+  label: "DailyHub AI",
+  shortLabel: "General",
+};
+
 export function getTelegramModeStatus() {
   const enabled = process.env.ENABLE_TELEGRAM === "true";
   const hasToken = Boolean(process.env.TELEGRAM_BOT_TOKEN);
@@ -31,6 +43,52 @@ function asString(value: unknown) {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
   return "";
+}
+
+function normalizeKey(value: string) {
+  return value.toLowerCase().replace(/[_\-]+/g, " ").trim();
+}
+
+function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
+  const text = normalizeKey(values.filter(Boolean).join(" "));
+
+  if (/email|gmail|mail|inbox|อีเมล/.test(text)) {
+    return { emoji: "📧", label: "Email Monitor", shortLabel: "Email" };
+  }
+  if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) {
+    return { emoji: "💸", label: "Sale Monitor", shortLabel: "Sale" };
+  }
+  if (/football|soccer|world cup|match|score|premier|บอล|ฟุตบอล/.test(text)) {
+    return { emoji: "⚽", label: "Football Recap", shortLabel: "Football" };
+  }
+  if (/concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน|บัตร/.test(text)) {
+    return { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" };
+  }
+  if (/weather|forecast|rain|temperature|อากาศ|ฝน|พยากรณ์/.test(text)) {
+    return { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" };
+  }
+  if (/weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/.test(text)) {
+    return { emoji: "🧭", label: "Weekend Ideas", shortLabel: "Ideas" };
+  }
+  if (/weekend long read|long read|article|read|บทความ|อ่านยาว/.test(text)) {
+    return { emoji: "📚", label: "Weekend Long Read", shortLabel: "Long Read" };
+  }
+  if (/daily brief|brief|news|headline|ข่าว|สรุป/.test(text)) {
+    return { emoji: "📰", label: "Daily Brief / News", shortLabel: "News" };
+  }
+  if (/telegram test|test|ทดสอบ/.test(text)) {
+    return { emoji: "🧪", label: "Telegram Test", shortLabel: "Test" };
+  }
+
+  return DEFAULT_TOPIC_META;
+}
+
+function getTaskTopicMeta(task: ScheduledTask): TelegramTopicMeta {
+  return getTopicMetaFromText(task.type, task.name, task.dataSources.join(" "), task.gptActions.join(" "));
+}
+
+function getSourceTopicMeta(sourceName: string): TelegramTopicMeta {
+  return getTopicMetaFromText(sourceName);
 }
 
 function formatMoney(value: unknown) {
@@ -78,7 +136,7 @@ function formatSourceItem(item: unknown, index: number) {
 
   if (product) {
     return [
-      `${index + 1}. สินค้า: ${truncate(product, 160)}`,
+      `${index + 1}. 💸 สินค้า: ${truncate(product, 160)}`,
       store ? `ร้าน/แหล่ง: ${truncate(store, 100)}` : "",
       oldPrice !== undefined || currentPrice !== undefined ? `ราคา: ${formatMoney(oldPrice)} → ${formatMoney(currentPrice)}` : "",
       discountPercent !== undefined ? `ส่วนลด: ${discountPercent}%` : "",
@@ -97,7 +155,7 @@ function formatSourceItem(item: unknown, index: number) {
 
   if (match || score || highlight) {
     return [
-      `${index + 1}. ฟุตบอล: ${match || "แมตช์"}${score ? ` (${score})` : ""}`,
+      `${index + 1}. ⚽ ฟุตบอล: ${match || "แมตช์"}${score ? ` (${score})` : ""}`,
       competition ? `รายการ: ${truncate(competition, 100)}` : "",
       highlight ? `ไฮไลต์: ${truncate(highlight, 180)}` : "",
       keyMoment ? `จังหวะสำคัญ: ${truncate(keyMoment, 220)}` : "",
@@ -114,7 +172,7 @@ function formatSourceItem(item: unknown, index: number) {
 
   if (artist || venue) {
     return [
-      `${index + 1}. คอนเสิร์ต: ${artist || "ศิลปิน/งานดนตรี"}`,
+      `${index + 1}. 🎤 คอนเสิร์ต: ${artist || "ศิลปิน/งานดนตรี"}`,
       city ? `เมือง: ${truncate(city, 80)}` : "",
       venue ? `สถานที่: ${truncate(venue, 120)}` : "",
       date ? `วันที่: ${date}` : "",
@@ -134,7 +192,7 @@ function formatSourceItem(item: unknown, index: number) {
 
   if (idea || budget || bestTime || why) {
     return [
-      `${index + 1}. ไอเดีย: ${truncate(idea || "Weekend idea", 160)}`,
+      `${index + 1}. 🧭 ไอเดีย: ${truncate(idea || "Weekend idea", 160)}`,
       location ? `สถานที่: ${truncate(location, 120)}` : "",
       budget ? `งบประมาณ: ${truncate(budget, 80)}` : "",
       mood ? `อารมณ์/สไตล์: ${truncate(mood, 80)}` : "",
@@ -145,31 +203,32 @@ function formatSourceItem(item: unknown, index: number) {
 
   if (subject || from) {
     return [
-      `${index + 1}. ${subject ? `อีเมล: ${truncate(subject, 160)}` : "อีเมล"}`,
+      `${index + 1}. 📧 ${subject ? `อีเมล: ${truncate(subject, 160)}` : "อีเมล"}`,
       from ? `จาก: ${truncate(from, 120)}` : "",
       priorityHint ? `ความสำคัญ: ${formatPriority(priorityHint)}` : "",
     ].filter(Boolean).join(" | ");
-  }
-
-  if (title || description || content) {
-    return [
-      `${index + 1}. ${title ? truncate(title, 180) : "ข่าว/ข้อมูล"}`,
-      sourceName ? `แหล่ง: ${truncate(sourceName, 90)}` : "",
-      description ? `รายละเอียด: ${truncate(description, 220)}` : content ? `เนื้อหา: ${truncate(content, 220)}` : "",
-      url ? `ลิงก์: ${url}` : "",
-    ].filter(Boolean).join("\n   ");
   }
 
   const forecast = asRecord(record.forecast);
   const current = asRecord(forecast?.current);
   if (location || current) {
     return [
-      `${index + 1}. สภาพอากาศ${location ? `: ${location}` : ""}`,
+      `${index + 1}. 🌦️ สภาพอากาศ${location ? `: ${location}` : ""}`,
       current?.temperature_2m !== undefined ? `อุณหภูมิ: ${current.temperature_2m}°C` : "",
       current?.rain !== undefined ? `ฝน: ${current.rain} mm` : "",
       current?.precipitation !== undefined ? `ปริมาณฝน: ${current.precipitation} mm` : "",
       current?.time ? `เวลา: ${current.time}` : "",
     ].filter(Boolean).join(" | ");
+  }
+
+  if (title || description || content) {
+    const meta = getSourceTopicMeta(sourceName || title || description || content);
+    return [
+      `${index + 1}. ${meta.emoji} ${title ? truncate(title, 180) : "ข่าว/ข้อมูล"}`,
+      sourceName ? `แหล่ง: ${truncate(sourceName, 90)}` : "",
+      description ? `รายละเอียด: ${truncate(description, 220)}` : content ? `เนื้อหา: ${truncate(content, 220)}` : "",
+      url ? `ลิงก์: ${url}` : "",
+    ].filter(Boolean).join("\n   ");
   }
 
   return `${index + 1}. ${truncate(JSON.stringify(record), 260)}`;
@@ -184,6 +243,7 @@ function buildSourceDetails(run: TaskRun) {
     if (!sourceRecord) return "";
 
     const sourceName = asString(sourceRecord.source) || asString(sourceRecord.title) || "แหล่งข้อมูล";
+    const sourceMeta = getSourceTopicMeta(sourceName);
     const status = asString(sourceRecord.status);
     const data = sourceRecord.data;
     const dataRecord = asRecord(data);
@@ -201,7 +261,7 @@ function buildSourceDetails(run: TaskRun) {
     const moreCount = Math.max(0, items.length - MAX_SOURCE_ITEMS);
 
     return [
-      `📌 ${sourceName}${status ? ` (${status})` : ""}`,
+      `${sourceMeta.emoji} ${sourceMeta.shortLabel} | ${sourceName}${status ? ` (${status})` : ""}`,
       formattedItems.length ? formattedItems.join("\n") : "- ไม่มีรายการข้อมูลจากแหล่งนี้",
       moreCount > 0 ? `…มีอีก ${moreCount} รายการ ดูทั้งหมดใน Dashboard` : "",
     ].filter(Boolean).join("\n");
@@ -223,8 +283,9 @@ function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
   const source = translation?.originalSource ?? (task.dataSources.join(", ") || task.type);
   const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
+  const topicMeta = getTaskTopicMeta(task);
 
-  return `🧠 DailyHub AI\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
+  return `${topicMeta.emoji} DailyHub AI | ${topicMeta.label}\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\nประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
 }
 
 function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {

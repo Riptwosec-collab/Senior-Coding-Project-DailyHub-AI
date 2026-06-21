@@ -27,7 +27,17 @@ export async function runSchedulerTick(options: SchedulerTickOptions = {}) {
 
   for (const task of dueTasks) {
     const result = await runTaskNow(task.id, { schedulerMode: true });
-    results.push({ taskId: task.id, taskName: task.name, status: result?.taskRun.status ?? "not_found", runId: result?.taskRun.id ?? null });
+    results.push({
+      taskId: task.id,
+      taskName: task.name,
+      status: result?.taskRun.status ?? "not_found",
+      runId: result?.taskRun.id ?? null,
+      telegramStatus: result?.taskRun.telegramStatus ?? null,
+      priorityScore: result?.taskRun.priorityScore ?? null,
+      minPriorityScore: task.minPriorityScore,
+      language: result?.taskRun.language ?? null,
+      translatedAt: result?.taskRun.translatedAt ?? null,
+    });
   }
 
   return {

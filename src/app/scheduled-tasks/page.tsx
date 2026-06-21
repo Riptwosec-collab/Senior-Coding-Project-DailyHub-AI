@@ -1,10 +1,10 @@
 import { AppShell } from "@/components/layout/AppShell";
-import { ScheduledTasksApiView } from "@/components/tasks/ScheduledTasksApiView";
+import { ScheduledTasksProView } from "@/components/tasks/ScheduledTasksProView";
 
 export default function ScheduledTasksPage() {
   return (
     <AppShell>
-      <ScheduledTasksApiView />
+      <ScheduledTasksProView />
     </AppShell>
   );
 }

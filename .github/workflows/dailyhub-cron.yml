@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       force_run:
-        description: "Run all active tasks now, ignoring nextRunAt. Use for manual testing."
+        description: "Manual testing: run all tasks now and send Telegram for every topic. Scheduled cron still uses false."
         required: false
-        default: "false"
+        default: "true"
         type: choice
         options:
-          - "false"
           - "true"
+          - "false"
 
 jobs:
   trigger-cron-api:

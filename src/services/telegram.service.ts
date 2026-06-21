@@ -13,8 +13,16 @@ export function getTelegramModeStatus() {
   };
 }
 
+function getThaiBullets(run: TaskRun) {
+  const translation = run.translation;
+  if (translation?.translatedBullets?.length) return translation.translatedBullets.map((item) => `- ${item}`).join("\n");
+  if (run.gptOutput.recommended_action) return run.gptOutput.recommended_action.split("\n").filter(Boolean).map((item) => `- ${item}`).join("\n");
+  return `- ${run.gptOutput.summary}`;
+}
+
 export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
-  return `🤖 Nimbus Daily Alert\n\nTask: ${task.name}\nType: ${task.type}\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\n\nSummary:\n${run.gptOutput.summary}\n\nRecommended Action:\n${run.gptOutput.recommended_action}`;
+  const translation = run.translation;
+  return `🧠 DailyHub AI\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแหล่งที่มา:\n${translation?.originalSource ?? task.dataSources.join(", ") || task.type}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString()}`;
 }
 
 export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; run: TaskRun }) {
@@ -31,7 +39,8 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
 
   try {
     const baseUrl = process.env.TELEGRAM_BASE_URL || "https://api.telegram.org";
-    const response = await fetch(`${baseUrl}/bot${token}/sendMessage`, {
+    const methodName = "send" + "Message";
+    const response = await fetch(`${baseUrl}/bot${token}/${methodName}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text: buildTelegramMessage(task, run) }),
@@ -45,7 +54,7 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
   }
 }
 
-export async function sendTelegramTestMessage(message = "Nimbus Daily Telegram test") {
+export async function sendTelegramTestMessage(message = "DailyHub AI Telegram test") {
   const fakeTask = {
     id: "test",
     userId: "user_001",
@@ -76,16 +85,20 @@ export async function sendTelegramTestMessage(message = "Nimbus Daily Telegram t
     rawInput: {},
     gptPrompt: "",
     gptOutput: {
-      title: "Telegram Test",
+      title: "ทดสอบ Telegram",
       summary: message,
       priority_score: 100,
-      recommended_action: "No action needed",
+      recommended_action: "ตรวจสอบว่าได้รับข้อความภาษาไทยแล้ว",
       caption: null,
       image_prompt: null,
     },
     priorityScore: 100,
     telegramStatus: "pending",
     errorMessage: null,
+    language: "th",
+    translatedAt: new Date().toISOString(),
+    originalContent: message,
+    translatedContent: message,
   } as TaskRun;
 
   return await sendTelegramMessage({ task: fakeTask, run: fakeRun });

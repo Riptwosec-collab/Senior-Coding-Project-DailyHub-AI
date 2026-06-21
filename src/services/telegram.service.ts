@@ -1,6 +1,7 @@
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { TaskRun } from "@/types/task-run";
 
+const TELEGRAM_BRAND_NAME = "Nimbus Daily";
 const TELEGRAM_SAFE_LIMIT = 3600;
 const MAX_SOURCE_ITEMS = 5;
 const MAX_FIELD_LENGTH = 280;
@@ -13,7 +14,7 @@ type TelegramTopicMeta = {
 
 const DEFAULT_TOPIC_META: TelegramTopicMeta = {
   emoji: "🧠",
-  label: "DailyHub AI",
+  label: "General",
   shortLabel: "General",
 };
 
@@ -47,6 +48,10 @@ function asString(value: unknown) {
 
 function normalizeKey(value: string) {
   return value.toLowerCase().replace(/[_\-]+/g, " ").trim();
+}
+
+function safeArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
 }
 
 function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
@@ -84,7 +89,12 @@ function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
 }
 
 function getTaskTopicMeta(task: ScheduledTask): TelegramTopicMeta {
-  return getTopicMetaFromText(task.type, task.name, task.dataSources.join(" "), task.gptActions.join(" "));
+  return getTopicMetaFromText(
+    task.type,
+    task.name,
+    safeArray(task.dataSources).map(String).join(" "),
+    safeArray(task.gptActions).map(String).join(" "),
+  );
 }
 
 function getSourceTopicMeta(sourceName: string): TelegramTopicMeta {
@@ -107,8 +117,12 @@ function formatPriority(priority: unknown) {
 
 function getThaiBullets(run: TaskRun) {
   const translation = run.translation;
-  if (translation?.translatedBullets?.length) return translation.translatedBullets.map((item) => `- ${item}`).join("\n");
-  if (run.gptOutput.recommended_action) return run.gptOutput.recommended_action.split("\n").filter(Boolean).map((item) => `- ${item}`).join("\n");
+  if (translation?.translatedBullets?.length) {
+    return translation.translatedBullets.map((item) => `- ${item}`).join("\n");
+  }
+  if (run.gptOutput.recommended_action) {
+    return run.gptOutput.recommended_action.split("\n").filter(Boolean).map((item) => `- ${item}`).join("\n");
+  }
   return `- ${run.gptOutput.summary}`;
 }
 
@@ -211,6 +225,7 @@ function formatSourceItem(item: unknown, index: number) {
 
   const forecast = asRecord(record.forecast);
   const current = asRecord(forecast?.current);
+  const location = asString(record.location);
   if (location || current) {
     return [
       `${index + 1}. 🌦️ สภาพอากาศ${location ? `: ${location}` : ""}`,
@@ -235,7 +250,8 @@ function formatSourceItem(item: unknown, index: number) {
 }
 
 function buildSourceDetails(run: TaskRun) {
-  const sources = Array.isArray(run.rawInput.sources) ? run.rawInput.sources : [];
+  const rawInput = asRecord(run.rawInput);
+  const sources = safeArray(rawInput?.sources);
   if (!sources.length) return "";
 
   const sections = sources.map((sourceEntry) => {
@@ -281,11 +297,11 @@ function getTranslationMode(run: TaskRun) {
 
 function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
-  const source = translation?.originalSource ?? (task.dataSources.join(", ") || task.type);
+  const source = translation?.originalSource ?? (safeArray(task.dataSources).map(String).join(", ") || task.type);
   const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
   const topicMeta = getTaskTopicMeta(task);
 
-  return `${topicMeta.emoji} DailyHub AI | ${topicMeta.label}\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\nประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
+  return `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}\nหัวข้อ: ${translation?.translatedTitle ?? run.gptOutput.title}\nประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}\n\nสรุปภาษาไทย:\n${getThaiBullets(run)}\n\nรายละเอียดสำคัญ:\n${translation?.translatedSummary ?? run.gptOutput.summary}\n\nแนะนำให้ทำต่อ:\n${run.gptOutput.recommended_action || "ตรวจสอบรายละเอียดใน Dashboard"}\n\nแหล่งที่มา:\n${source}\n\nภาษาเดิม: ${translation?.originalLanguage ?? run.language ?? "unknown"}\nโหมดแปล: ${getTranslationMode(run)}\nTask: ${task.name} (${task.type})\nPriority: ${run.priorityScore}/100\nStatus: ${run.status}\nเวลาอัปเดต: ${translatedAt}`;
 }
 
 function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {
@@ -359,7 +375,7 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
   }
 }
 
-export async function sendTelegramTestMessage(message = "DailyHub AI Telegram test") {
+export async function sendTelegramTestMessage(message = `${TELEGRAM_BRAND_NAME} Telegram test`) {
   const now = new Date().toISOString();
   const fakeTask = {
     id: "test",

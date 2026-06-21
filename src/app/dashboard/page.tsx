@@ -1,10 +1,10 @@
-import { DashboardApiView } from "@/components/dashboard/DashboardApiView";
+import { DashboardControlView } from "@/components/dashboard/DashboardControlView";
 import { AppShell } from "@/components/layout/AppShell";
 
 export default function DashboardPage() {
   return (
     <AppShell>
-      <DashboardApiView />
+      <DashboardControlView />
     </AppShell>
   );
 }

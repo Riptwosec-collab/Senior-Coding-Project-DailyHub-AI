@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { TranslationKey } from "@/lib/translations";
 
-const navItems = [
-  { href: "/", label: "Home", icon: "⌂" },
-  { href: "/dashboard", label: "Dashboard", icon: "◈" },
-  { href: "/scheduled-tasks", label: "Scheduled Tasks", icon: "⏱" },
-  { href: "/scheduled-tasks/create", label: "Create Task", icon: "+" },
-  { href: "/templates", label: "Templates", icon: "▣" },
-  { href: "/task-results", label: "Task Results", icon: "◎" },
-  { href: "/notifications", label: "Notifications", icon: "●" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
-  { href: "/admin", label: "Admin", icon: "◇" },
+const navItems: { href: string; key: TranslationKey; icon: string }[] = [
+  { href: "/", key: "nav_home", icon: "⌂" },
+  { href: "/dashboard", key: "nav_dashboard", icon: "◈" },
+  { href: "/scheduled-tasks", key: "nav_scheduled_tasks", icon: "⏱" },
+  { href: "/scheduled-tasks/create", key: "nav_create_task", icon: "+" },
+  { href: "/templates", key: "nav_templates", icon: "▣" },
+  { href: "/task-results", key: "nav_task_results", icon: "◎" },
+  { href: "/notifications", key: "nav_notifications", icon: "●" },
+  { href: "/settings", key: "nav_settings", icon: "⚙" },
+  { href: "/admin", key: "nav_admin", icon: "◇" },
 ];
 
 interface SidebarProps {
@@ -23,6 +25,7 @@ interface SidebarProps {
 
 export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   return (
     <aside
@@ -38,13 +41,13 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
         </div>
         <div>
           <p className="text-lg font-black tracking-tight text-white">Nimbus Daily</p>
-          <p className="text-xs text-cyan-100/60">Production MVP</p>
+          <p className="text-xs text-cyan-100/60">{t("sidebar_build_label")}</p>
         </div>
       </Link>
 
       <div className="mt-6 rounded-3xl border border-cyan-400/20 bg-cyan-400/[0.08] p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">Phase 27</p>
-        <p className="mt-2 text-sm leading-6 text-slate-300">Dashboard, API, Scheduler, Templates, Settings, Admin และ Deploy พร้อมใช้งาน</p>
+        <p className="text-xs font-bold uppercase tracking-[0.28em] text-cyan-200">{t("sidebar_phase")}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-300">{t("sidebar_desc")}</p>
       </div>
 
       <nav className="mt-7 space-y-2">
@@ -61,7 +64,7 @@ export function Sidebar({ mobile = false, onNavigate }: SidebarProps) {
               )}
             >
               <span className={cn("flex h-8 w-8 items-center justify-center rounded-xl border text-xs transition", isActive ? "border-cyan-300/30 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-400 group-hover:text-white")}>{item.icon}</span>
-              {item.label}
+              {t(item.key)}
             </Link>
           );
         })}

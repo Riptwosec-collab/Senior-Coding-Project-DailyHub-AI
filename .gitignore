@@ -27,4 +27,18 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
-.env.produc
+.env.production
+.env.development
+.env.test
+
+# allow safe examples only
+!.env.example
+!.env.final.example
+!.env.phase18.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

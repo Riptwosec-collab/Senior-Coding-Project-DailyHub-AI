@@ -14,14 +14,20 @@ function isAuthorized(request: Request) {
   return authHeader === `Bearer ${configuredSecret}` || schedulerHeader === configuredSecret;
 }
 
+function shouldForceRun(request: Request) {
+  const url = new URL(request.url);
+  const force = url.searchParams.get("force") ?? url.searchParams.get("runAll");
+  return force === "true" || force === "1" || force === "yes";
+}
+
 export async function GET(request: Request) {
   if (!isAuthorized(request)) return errorResponse("Unauthorized scheduler request", 401, "BAD_REQUEST");
-  const result = await runSchedulerTick();
+  const result = await runSchedulerTick({ force: shouldForceRun(request) });
   return successResponse(result);
 }
 
 export async function POST(request: Request) {
   if (!isAuthorized(request)) return errorResponse("Unauthorized scheduler request", 401, "BAD_REQUEST");
-  const result = await runSchedulerTick();
+  const result = await runSchedulerTick({ force: shouldForceRun(request) });
   return successResponse(result);
 }

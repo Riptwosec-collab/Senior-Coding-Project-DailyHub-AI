@@ -1,5 +1,5 @@
 ﻿# Nimbus Daily Data Library
 
-Step 4/10: data loading plan.
+Step 5/10: filter/search plan.
 
-APIs: /api/scheduled-tasks and /api/task-runs.
+Supports ?run=, topic filter, failed filter, and search.

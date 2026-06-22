@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -14,81 +14,144 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const TOPICS = [
-  { key: "all", icon: "âœ¨", th: "à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”", en: "All" },
-  { key: "Daily Brief", icon: "ðŸ“°", th: "à¸‚à¹ˆà¸²à¸§ / à¸ªà¸£à¸¸à¸›à¸›à¸£à¸°à¸ˆà¸³à¸§à¸±à¸™", en: "News / Daily Brief" },
-  { key: "Weather", icon: "ðŸŒ¦ï¸", th: "à¸ªà¸ à¸²à¸žà¸­à¸²à¸à¸²à¸¨", en: "Weather" },
-  { key: "Sale Monitor", icon: "ðŸŒ", th: "à¸ªà¸´à¸™à¸„à¹‰à¸²à¹ƒà¸«à¸¡à¹ˆ/à¸™à¹ˆà¸²à¸ªà¸™à¹ƒà¸ˆà¸—à¸±à¹ˆà¸§à¹‚à¸¥à¸", en: "Global Product Radar" },
-  { key: "Email Monitor", icon: "ðŸ“§", th: "à¸­à¸µà¹€à¸¡à¸¥à¸ªà¸³à¸„à¸±à¸", en: "Email Monitor" },
-  { key: "Concert Alerts", icon: "ðŸŽ¤", th: "à¸„à¸­à¸™à¹€à¸ªà¸´à¸£à¹Œà¸•", en: "Concert Alerts" },
-  { key: "World Cup Recap", icon: "âš½", th: "à¸Ÿà¸¸à¸•à¸šà¸­à¸¥", en: "Football" },
-  { key: "Weekend Ideas", icon: "ðŸ§­", th: "à¹„à¸­à¹€à¸”à¸µà¸¢à¸§à¸±à¸™à¸«à¸¢à¸¸à¸”", en: "Weekend Ideas" },
-  { key: "Weekend Long Read", icon: "ðŸ“š", th: "à¸šà¸—à¸„à¸§à¸²à¸¡à¸­à¹ˆà¸²à¸™à¸¢à¸²à¸§", en: "Long Read" },
-  { key: "failed", icon: "âŒ", th: "à¸¡à¸µà¸›à¸±à¸à¸«à¸²", en: "Failed" },
-] as const;
+type TopicKey =
+  | "all"
+  | "daily"
+  | "weather"
+  | "product"
+  | "email"
+  | "concert"
+  | "football"
+  | "ideas"
+  | "longread"
+  | "failed";
+
+type Topic = {
+  key: Exclude<TopicKey, "all" | "failed">;
+  icon: string;
+  th: string;
+  en: string;
+  pattern: RegExp;
+};
+
+const TOPICS: Topic[] = [
+  { key: "daily", icon: "📰", th: "ข่าว / สรุปประจำวัน", en: "News / Daily Brief", pattern: /daily|brief|news|headline|ข่าว|สรุป/i },
+  { key: "weather", icon: "🌦️", th: "สภาพอากาศ", en: "Weather", pattern: /weather|forecast|rain|temperature|อากาศ|ฝน/i },
+  { key: "product", icon: "🌍", th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar", pattern: /sale|product|price|radar|gadget|สินค้า|โปร/i },
+  { key: "email", icon: "📧", th: "อีเมลสำคัญ", en: "Email Monitor", pattern: /email|gmail|mail|inbox|อีเมล/i },
+  { key: "concert", icon: "🎤", th: "คอนเสิร์ต", en: "Concert Alerts", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน/i },
+  { key: "football", icon: "⚽", th: "ฟุตบอล", en: "Football", pattern: /football|soccer|world cup|match|score|บอล|ฟุตบอล/i },
+  { key: "ideas", icon: "🧭", th: "ไอเดียวันหยุด", en: "Weekend Ideas", pattern: /weekend ideas|weekend idea|trip|travel|idea|เที่ยว|ไอเดีย/i },
+  { key: "longread", icon: "📚", th: "บทความอ่านยาว", en: "Long Read", pattern: /weekend long read|long read|article|reading|บทความ|อ่านยาว/i },
+];
+
+const FILTERS: Array<{ key: TopicKey; icon: string; th: string; en: string }> = [
+  { key: "all", icon: "✨", th: "ทั้งหมด", en: "All" },
+  ...TOPICS,
+  { key: "failed", icon: "❌", th: "มีปัญหา", en: "Failed" },
+];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
 
 function asText(value: unknown) {
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "true" : "false";
   return "";
 }
 
-function sourceNames(run: TaskRun) {
-  const sources = Array.isArray(run.rawInput?.sources) ? run.rawInput.sources : [];
-  return sources.map((source) => {
-    const record = asRecord(source);
-    return asText(record?.source) || asText(record?.title);
-  }).filter(Boolean);
+function short(value: string, max = 180) {
+  const text = value.replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
-function countItems(run: TaskRun) {
-  const sources = Array.isArray(run.rawInput?.sources) ? run.rawInput.sources : [];
-  return sources.reduce((total, source) => {
-    const record = asRecord(source);
-    if (!record) return total;
-    const data = record.data;
-    const dataRecord = asRecord(data);
-    if (Array.isArray(record.items)) return total + record.items.length;
-    if (Array.isArray(data)) return total + data.length;
-    if (Array.isArray(dataRecord?.ideas)) return total + dataRecord.ideas.length;
-    if (Array.isArray(dataRecord?.articles)) return total + dataRecord.articles.length;
-    if (Array.isArray(dataRecord?.items)) return total + dataRecord.items.length;
-    return total + (data ? 1 : 0);
-  }, 0);
+function sourcesOf(run: TaskRun) {
+  const sources = Array.isArray(run.rawInput.sources) ? run.rawInput.sources : [];
+  return sources.map(asRecord).filter((source): source is Record<string, unknown> => Boolean(source));
+}
+
+function sourceName(source: Record<string, unknown>) {
+  return asText(source.source) || asText(source.title) || "Source";
+}
+
+function itemsFromSource(source: Record<string, unknown>) {
+  const data = source.data;
+  const dataRecord = asRecord(data);
+  if (Array.isArray(source.items)) return source.items;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(dataRecord?.ideas)) return dataRecord.ideas;
+  if (Array.isArray(dataRecord?.articles)) return dataRecord.articles;
+  if (Array.isArray(dataRecord?.items)) return dataRecord.items;
+  return data ? [data] : [];
+}
+
+function allItems(run: TaskRun) {
+  return sourcesOf(run).flatMap(itemsFromSource);
 }
 
 function topicFor(task?: ScheduledTask, run?: TaskRun) {
-  const text = `${task?.type ?? ""} ${task?.name ?? ""} ${sourceNames(run ?? ({} as TaskRun)).join(" ")}`.toLowerCase();
-  if (text.includes("weather")) return "Weather";
-  if (text.includes("email") || text.includes("gmail")) return "Email Monitor";
-  if (text.includes("concert")) return "Concert Alerts";
-  if (text.includes("football") || text.includes("world cup")) return "World Cup Recap";
-  if (text.includes("long read")) return "Weekend Long Read";
-  if (text.includes("weekend idea")) return "Weekend Ideas";
-  if (text.includes("product") || text.includes("sale")) return "Sale Monitor";
-  return "Daily Brief";
+  const sourceText = run ? sourcesOf(run).map(sourceName).join(" ") : "";
+  const text = `${task?.type ?? ""} ${task?.name ?? ""} ${run?.gptOutput.title ?? ""} ${run?.gptOutput.summary ?? ""} ${sourceText}`;
+  return TOPICS.find((topic) => topic.pattern.test(text)) ?? TOPICS[0];
 }
 
-function detailLines(run: TaskRun) {
-  const sources = Array.isArray(run.rawInput?.sources) ? run.rawInput.sources : [];
-  return sources.flatMap((source) => {
-    const record = asRecord(source);
-    if (!record) return [];
-    const items = Array.isArray(record.items) ? record.items : Array.isArray(record.data) ? record.data : [];
-    return items.slice(0, 8).map((item) => {
-      const row = asRecord(item);
-      if (!row) return String(item);
-      return [row.product, row.title, row.match, row.idea, row.subject, row.artist, row.location, row.description, row.content, row.highlight, row.whyInteresting]
-        .map(asText)
-        .filter(Boolean)
-        .slice(0, 3)
-        .join(" â€” ");
-    }).filter(Boolean);
-  });
+function itemMainText(item: unknown) {
+  const row = asRecord(item);
+  if (!row) return String(item ?? "");
+  return [
+    row.product,
+    row.title,
+    row.match,
+    row.idea,
+    row.subject,
+    row.artist,
+    row.location,
+    row.description,
+    row.content,
+    row.highlight,
+    row.whyInteresting,
+  ]
+    .map(asText)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(" — ");
+}
+
+function detailRows(item: unknown) {
+  const row = asRecord(item);
+  if (!row) return [];
+  const pairs = [
+    ["หมวด / Category", row.category],
+    ["แหล่งเทรนด์ / Trend source", row.trendSource || row.country || row.source],
+    ["แบรนด์ / Brand", row.brand || row.maker || row.store],
+    ["เหตุผลที่น่าสนใจ / Why", row.whyInteresting || row.why || row.reason],
+    ["จุดเด่น / Highlight", row.highlight || row.feature || row.keyMoment],
+    ["เหมาะกับ / For", row.targetUser || row.audience],
+    ["ราคา / Price", row.priceRange || row.currentPrice || row.price],
+    ["ควรเช็ก / Check", row.checkBeforeBuy || row.action],
+    ["ลิงก์ / Link", row.url || row.link],
+  ];
+  return pairs.map(([label, value]) => [label, asText(value)] as const).filter(([, value]) => Boolean(value));
+}
+
+function searchText(run: TaskRun, task?: ScheduledTask) {
+  return `${task?.name ?? ""} ${task?.type ?? ""} ${run.gptOutput.title} ${run.gptOutput.summary} ${run.translatedContent ?? ""} ${run.originalContent ?? ""} ${JSON.stringify(run.rawInput)}`.toLowerCase();
+}
+
+function statusTone(status: string) {
+  if (status === "success") return "green" as const;
+  if (status === "failed") return "red" as const;
+  if (status === "running") return "purple" as const;
+  return "gray" as const;
+}
+
+function telegramTone(status: string | null | undefined) {
+  if (status === "sent" || status?.startsWith("mock_sent")) return "green" as const;
+  if (status?.includes("failed")) return "red" as const;
+  if (status?.includes("skipped")) return "gray" as const;
+  return "purple" as const;
 }
 
 export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }) {
@@ -98,7 +161,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
   const [runs, setRuns] = useState<TaskRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<TopicKey>("all");
   const [query, setQuery] = useState("");
   const [runId, setRunId] = useState(initialRunId);
 
@@ -119,64 +182,164 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   useEffect(() => setRunId(initialRunId), [initialRunId]);
 
   const taskMap = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
-  const visibleRuns = useMemo(() => runs.filter((run) => {
-    const task = taskMap.get(run.taskId);
-    if (runId && run.id !== runId) return false;
-    if (filter === "failed" && run.status !== "failed" && !run.telegramStatus?.includes("failed")) return false;
-    if (filter !== "all" && filter !== "failed" && topicFor(task, run) !== filter) return false;
-    const searchText = `${task?.name ?? ""} ${task?.type ?? ""} ${run.gptOutput.title} ${run.gptOutput.summary} ${run.translatedContent ?? ""} ${JSON.stringify(run.rawInput)}`.toLowerCase();
-    return !query || searchText.includes(query.toLowerCase());
-  }), [filter, query, runId, runs, taskMap]);
 
-  if (loading) return <LoadingState title={isTh ? "à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”à¸„à¸¥à¸±à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥" : "Loading Data Library"} description={isTh ? "à¸à¸³à¸¥à¸±à¸‡à¸”à¸¶à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸•à¹‡à¸¡à¸ˆà¸²à¸ API" : "Fetching full data from API"} />;
-  if (error) return <ErrorState title={isTh ? "à¹‚à¸«à¸¥à¸” Data Library à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ" : "Data Library loading failed"} description={error} onRetry={load} />;
+  const visibleRuns = useMemo(
+    () => runs.filter((run) => {
+      const task = taskMap.get(run.taskId);
+      if (runId && run.id !== runId) return false;
+      if (filter === "failed" && run.status !== "failed" && !run.telegramStatus?.includes("failed")) return false;
+      if (filter !== "all" && filter !== "failed" && topicFor(task, run).key !== filter) return false;
+      return !query || searchText(run, task).includes(query.toLowerCase());
+    }),
+    [filter, query, runId, runs, taskMap],
+  );
+
+  const totalItems = runs.reduce((total, run) => total + allItems(run).length, 0);
+  const selectedItems = visibleRuns.reduce((total, run) => total + allItems(run).length, 0);
+
+  if (loading) {
+    return <LoadingState title={isTh ? "กำลังโหลดคลังข้อมูล" : "Loading Data Library"} description={isTh ? "กำลังดึงข้อมูลเต็มจาก API" : "Fetching full data from API"} />;
+  }
+
+  if (error) {
+    return <ErrorState title={isTh ? "โหลด Data Library ไม่สำเร็จ" : "Data Library loading failed"} description={error} onRetry={load} />;
+  }
 
   return (
-    <div className="space-y-8">
-      <Card className="p-6 sm:p-8">
-        <Badge tone="purple">Data Library</Badge>
-        <h1 className="mt-5 text-3xl font-black text-white sm:text-5xl">{isTh ? "à¸„à¸¥à¸±à¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸•à¹‡à¸¡à¸‚à¸­à¸‡ Nimbus Daily" : "Nimbus Daily full data library"}</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-          {isTh ? "Telegram à¸ªà¹ˆà¸‡à¹à¸„à¹ˆà¸ªà¸£à¸¸à¸›à¸ªà¸±à¹‰à¸™ à¸ªà¹ˆà¸§à¸™à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸³à¸™à¸§à¸™à¸¡à¸²à¸à¹€à¸à¹‡à¸šà¹„à¸§à¹‰à¸—à¸µà¹ˆà¸«à¸™à¹‰à¸²à¸™à¸µà¹‰ à¹à¸¢à¸à¸«à¸¡à¸§à¸” à¸„à¹‰à¸™à¸«à¸² à¹à¸¥à¸°à¸­à¹ˆà¸²à¸™à¹€à¸•à¹‡à¸¡à¹„à¸”à¹‰" : "Telegram sends a compact summary. Full collected data is stored here by category."}
-        </p>
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          <Card className="p-4"><p className="text-sm text-slate-400">Runs</p><p className="text-3xl font-black text-white">{runs.length}</p></Card>
-          <Card className="p-4"><p className="text-sm text-slate-400">Visible</p><p className="text-3xl font-black text-white">{visibleRuns.length}</p></Card>
-          <Card className="p-4"><p className="text-sm text-slate-400">Run</p><p className="truncate text-sm font-bold text-cyan-100">{runId || "-"}</p></Card>
+    <div className="nimbus-depth-space space-y-8">
+      <Card className="nimbus-pulse-dot relative overflow-hidden p-6 sm:p-8">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="absolute -bottom-24 left-10 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+        <div className="relative">
+          <Badge tone="purple">🧊 Data Library</Badge>
+          <h1 className="mt-5 max-w-4xl text-3xl font-black text-white sm:text-5xl">
+            {isTh ? "คลังข้อมูลเต็มของ Nimbus Daily" : "Nimbus Daily full data library"}
+          </h1>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+            {isTh
+              ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่ แยกหมวด ค้นหา และอ่านเต็มได้แบบ interactive"
+              : "Telegram sends compact summaries. All full collected data is stored here by category with search and interactive reading cards."}
+          </p>
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            <Card className="p-4"><p className="text-sm text-slate-400">Runs</p><p className="text-3xl font-black text-white">{runs.length}</p></Card>
+            <Card className="p-4"><p className="text-sm text-slate-400">Items</p><p className="text-3xl font-black text-white">{totalItems}</p></Card>
+            <Card className="p-4"><p className="text-sm text-slate-400">Visible</p><p className="text-3xl font-black text-white">{selectedItems}</p></Card>
+          </div>
         </div>
       </Card>
 
       <Card className="p-5">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input className="min-h-11 flex-1 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "à¸„à¹‰à¸™à¸«à¸²à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸•à¹‡à¸¡..." : "Search full data..."} value={query} />
-          {runId && <Button onClick={() => setRunId("")} type="button" variant="secondary">{isTh ? "à¸”à¸¹à¸—à¸¸à¸ run" : "View all runs"}</Button>}
-          <Button onClick={load} type="button" variant="outline">ðŸ”„ {isTh ? "à¸£à¸µà¹€à¸Ÿà¸£à¸Š" : "Refresh"}</Button>
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+          <input
+            className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={isTh ? "ค้นหาข้อมูลเต็ม เช่น AI, football, product, concert..." : "Search full data, sources, products, football, concerts..."}
+            value={query}
+          />
+          <div className="flex flex-wrap gap-2">
+            {runId && <Button onClick={() => setRunId("")} type="button" variant="secondary">{isTh ? "ดูทุก run" : "View all runs"}</Button>}
+            <Button onClick={load} type="button" variant="outline">🔄 {isTh ? "รีเฟรช" : "Refresh"}</Button>
+          </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          {TOPICS.map((item) => <button key={item.key} className={`rounded-full border px-3 py-2 text-xs font-bold transition ${filter === item.key ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"}`} onClick={() => setFilter(item.key)} type="button">{item.icon} {isTh ? item.th : item.en}</button>)}
+          {FILTERS.map((item) => (
+            <button
+              key={item.key}
+              className={`nimbus-button-3d rounded-full border px-3 py-2 text-xs font-bold transition ${filter === item.key ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"}`}
+              onClick={() => setFilter(item.key)}
+              type="button"
+            >
+              {item.icon} {isTh ? item.th : item.en}
+            </button>
+          ))}
         </div>
       </Card>
 
-      {visibleRuns.length === 0 ? <EmptyState title={isTh ? "à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹€à¸•à¹‡à¸¡" : "No full data"} description={isTh ? "à¸¥à¸­à¸‡à¸£à¸±à¸™ task à¸ˆà¸²à¸ Dashboard à¸à¹ˆà¸­à¸™" : "Run tasks from the Dashboard first."} /> : <div className="grid gap-4 xl:grid-cols-2">{visibleRuns.map((run) => {
-        const task = taskMap.get(run.taskId);
-        const topic = TOPICS.find((item) => item.key === topicFor(task, run)) ?? TOPICS[1];
-        const names = sourceNames(run);
-        const lines = detailLines(run);
-        return <Card key={run.id} className="p-5">
-          <div className="flex flex-wrap gap-2"><Badge tone="blue">{topic.icon} {isTh ? topic.th : topic.en}</Badge><Badge tone={run.status === "failed" ? "red" : "green"}>{run.status}</Badge><Badge tone="gray">Telegram: {run.telegramStatus || "unknown"}</Badge></div>
-          <h3 className="mt-4 text-xl font-black text-white">{run.translation?.translatedTitle || run.gptOutput.title}</h3>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{run.translatedContent || run.translation?.translatedSummary || run.gptOutput.summary}</p>
-          <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4 sm:grid-cols-2"><p className="text-sm text-slate-300">Task: <b>{task?.name ?? run.taskId}</b></p><p className="text-sm text-slate-300">Priority: <b>{run.priorityScore}/100</b></p><p className="text-sm text-slate-300">Items: <b>{countItems(run)}</b></p><p className="text-sm text-slate-300">{formatDateTime(run.startedAt)}</p></div>
-          {names.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{names.map((name) => <Badge key={name} tone="gray">ðŸ—‚ {name}</Badge>)}</div>}
-          {lines.length > 0 && <ul className="mt-5 space-y-2 text-sm leading-6 text-slate-300">{lines.map((line) => <li key={line}>â€¢ {line}</li>)}</ul>}
-          <div className="mt-5"><Button asChild size="sm" variant="outline"><Link href={`/task-results/${run.id}`}>ðŸ“‹ {isTh ? "à¹€à¸›à¸´à¸”à¸œà¸¥à¸¥à¸±à¸žà¸˜à¹Œ run" : "Open run"}</Link></Button></div>
-        </Card>;
-      })}</div>}
+      {visibleRuns.length === 0 ? (
+        <EmptyState title={isTh ? "ยังไม่มีข้อมูลในหมวดนี้" : "No data in this view"} description={isTh ? "ลองเปลี่ยน filter หรือรัน scheduler อีกครั้ง" : "Try another filter or run the scheduler again."} />
+      ) : (
+        <div className="grid gap-5 xl:grid-cols-2">
+          {visibleRuns.map((run) => {
+            const task = taskMap.get(run.taskId);
+            const topic = topicFor(task, run);
+            const sources = sourcesOf(run);
+            const items = allItems(run);
+            return (
+              <Card key={run.id} className="nimbus-orbit p-5 sm:p-6">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge tone="blue">{topic.icon} {isTh ? topic.th : topic.en}</Badge>
+                      <Badge tone={statusTone(run.status)}>{run.status}</Badge>
+                      <Badge tone={telegramTone(run.telegramStatus)}>📨 {run.telegramStatus || "unknown"}</Badge>
+                    </div>
+                    <h2 className="mt-4 text-xl font-black text-white">{isTh && run.translation?.translatedTitle ? run.translation.translatedTitle : run.gptOutput.title}</h2>
+                    <p className="mt-3 text-sm leading-6 text-slate-300">{isTh ? run.translatedContent || run.translation?.translatedSummary || run.gptOutput.summary : run.gptOutput.summary}</p>
+                  </div>
+                  <div className="shrink-0 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-right">
+                    <p className="text-2xl font-black text-cyan-100">{run.priorityScore}</p>
+                    <p className="text-[11px] uppercase tracking-wider text-slate-400">priority</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Sources</p><p className="mt-1 font-black text-white">{sources.length}</p></div>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Items</p><p className="mt-1 font-black text-white">{items.length}</p></div>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Updated</p><p className="mt-1 truncate text-xs font-bold text-white">{formatDateTime(run.startedAt)}</p></div>
+                </div>
+
+                <div className="mt-5 space-y-4">
+                  {sources.map((source, sourceIndex) => {
+                    const sourceItems = itemsFromSource(source);
+                    return (
+                      <div key={`${run.id}-${sourceIndex}`} className="rounded-3xl border border-white/10 bg-slate-950/35 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <h3 className="font-black text-white">🗂 {sourceName(source)}</h3>
+                          <Badge tone="gray">{sourceItems.length} items</Badge>
+                        </div>
+                        <div className="mt-4 grid gap-3">
+                          {sourceItems.slice(0, 8).map((item, itemIndex) => {
+                            const main = itemMainText(item);
+                            const rows = detailRows(item);
+                            return (
+                              <div key={`${run.id}-${sourceIndex}-${itemIndex}`} className="nimbus-console-line rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                                <p className="relative z-10 text-sm font-bold leading-6 text-cyan-50">{main || JSON.stringify(item).slice(0, 180)}</p>
+                                {rows.length > 0 && (
+                                  <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">
+                                    {rows.slice(0, 8).map(([rowLabel, value]) => (
+                                      <div key={`${rowLabel}-${value}`}>
+                                        <dt className="text-slate-500">{rowLabel}</dt>
+                                        <dd className="mt-1 break-words text-slate-200">{short(value, 160)}</dd>
+                                      </div>
+                                    ))}
+                                  </dl>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {sourceItems.length > 8 && <p className="text-xs text-slate-400">…{isTh ? `มีอีก ${sourceItems.length - 8} รายการ` : `${sourceItems.length - 8} more items`}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Button asChild size="sm" variant="secondary"><Link href={`/task-results/${run.id}`}>{isTh ? "เปิดผลลัพธ์เดิม" : "Open original result"}</Link></Button>
+                  <Button asChild size="sm" variant="outline"><Link href={`/data-library?run=${run.id}`}>{isTh ? "ลิงก์ run นี้" : "Run link"}</Link></Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
-

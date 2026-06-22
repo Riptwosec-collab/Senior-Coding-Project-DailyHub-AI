@@ -14,25 +14,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-type TopicKey =
-  | "all"
-  | "daily"
-  | "weather"
-  | "product"
-  | "email"
-  | "concert"
-  | "football"
-  | "ideas"
-  | "longread"
-  | "failed";
+type TopicKey = "all" | "daily" | "weather" | "product" | "email" | "concert" | "football" | "ideas" | "longread" | "failed";
+type Topic = { key: Exclude<TopicKey, "all" | "failed">; icon: string; th: string; en: string; pattern: RegExp };
 
-type Topic = {
-  key: Exclude<TopicKey, "all" | "failed">;
-  icon: string;
-  th: string;
-  en: string;
-  pattern: RegExp;
-};
+type SourceRecord = Record<string, unknown>;
 
 const TOPICS: Topic[] = [
   { key: "daily", icon: "📰", th: "ข่าว / สรุปประจำวัน", en: "News / Daily Brief", pattern: /daily|brief|news|headline|ข่าว|สรุป/i },
@@ -51,8 +36,8 @@ const FILTERS: Array<{ key: TopicKey; icon: string; th: string; en: string }> = 
   { key: "failed", icon: "❌", th: "มีปัญหา", en: "Failed" },
 ];
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+function asRecord(value: unknown): SourceRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as SourceRecord) : null;
 }
 
 function asText(value: unknown) {
@@ -69,14 +54,14 @@ function short(value: string, max = 180) {
 
 function sourcesOf(run: TaskRun) {
   const sources = Array.isArray(run.rawInput.sources) ? run.rawInput.sources : [];
-  return sources.map(asRecord).filter((source): source is Record<string, unknown> => Boolean(source));
+  return sources.map(asRecord).filter((source): source is SourceRecord => Boolean(source));
 }
 
-function sourceName(source: Record<string, unknown>) {
+function sourceName(source: SourceRecord) {
   return asText(source.source) || asText(source.title) || "Source";
 }
 
-function itemsFromSource(source: Record<string, unknown>) {
+function itemsFromSource(source: SourceRecord) {
   const data = source.data;
   const dataRecord = asRecord(data);
   if (Array.isArray(source.items)) return source.items;
@@ -100,29 +85,17 @@ function topicFor(task?: ScheduledTask, run?: TaskRun) {
 function itemMainText(item: unknown) {
   const row = asRecord(item);
   if (!row) return String(item ?? "");
-  return [
-    row.product,
-    row.title,
-    row.match,
-    row.idea,
-    row.subject,
-    row.artist,
-    row.location,
-    row.description,
-    row.content,
-    row.highlight,
-    row.whyInteresting,
-  ]
+  return [row.product, row.title, row.match, row.idea, row.subject, row.artist, row.location, row.description, row.content, row.highlight, row.whyInteresting]
     .map(asText)
     .filter(Boolean)
     .slice(0, 3)
     .join(" — ");
 }
 
-function detailRows(item: unknown) {
+function detailRows(item: unknown): Array<[string, string]> {
   const row = asRecord(item);
   if (!row) return [];
-  const pairs = [
+  const pairs: Array<[string, unknown]> = [
     ["หมวด / Category", row.category],
     ["แหล่งเทรนด์ / Trend source", row.trendSource || row.country || row.source],
     ["แบรนด์ / Brand", row.brand || row.maker || row.store],
@@ -133,7 +106,7 @@ function detailRows(item: unknown) {
     ["ควรเช็ก / Check", row.checkBeforeBuy || row.action],
     ["ลิงก์ / Link", row.url || row.link],
   ];
-  return pairs.map(([label, value]) => [label, asText(value)] as const).filter(([, value]) => Boolean(value));
+  return pairs.map(([label, value]) => [label, asText(value)]).filter(([, value]) => Boolean(value));
 }
 
 function searchText(run: TaskRun, task?: ScheduledTask) {
@@ -182,35 +155,23 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
+  useEffect(() => { void load(); }, [load]);
   useEffect(() => setRunId(initialRunId), [initialRunId]);
 
   const taskMap = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
-
-  const visibleRuns = useMemo(
-    () => runs.filter((run) => {
-      const task = taskMap.get(run.taskId);
-      if (runId && run.id !== runId) return false;
-      if (filter === "failed" && run.status !== "failed" && !run.telegramStatus?.includes("failed")) return false;
-      if (filter !== "all" && filter !== "failed" && topicFor(task, run).key !== filter) return false;
-      return !query || searchText(run, task).includes(query.toLowerCase());
-    }),
-    [filter, query, runId, runs, taskMap],
-  );
+  const visibleRuns = useMemo(() => runs.filter((run) => {
+    const task = taskMap.get(run.taskId);
+    if (runId && run.id !== runId) return false;
+    if (filter === "failed" && run.status !== "failed" && !run.telegramStatus?.includes("failed")) return false;
+    if (filter !== "all" && filter !== "failed" && topicFor(task, run).key !== filter) return false;
+    return !query || searchText(run, task).includes(query.toLowerCase());
+  }), [filter, query, runId, runs, taskMap]);
 
   const totalItems = runs.reduce((total, run) => total + allItems(run).length, 0);
   const selectedItems = visibleRuns.reduce((total, run) => total + allItems(run).length, 0);
 
-  if (loading) {
-    return <LoadingState title={isTh ? "กำลังโหลดคลังข้อมูล" : "Loading Data Library"} description={isTh ? "กำลังดึงข้อมูลเต็มจาก API" : "Fetching full data from API"} />;
-  }
-
-  if (error) {
-    return <ErrorState title={isTh ? "โหลด Data Library ไม่สำเร็จ" : "Data Library loading failed"} description={error} onRetry={load} />;
-  }
+  if (loading) return <LoadingState title={isTh ? "กำลังโหลดคลังข้อมูล" : "Loading Data Library"} description={isTh ? "กำลังดึงข้อมูลเต็มจาก API" : "Fetching full data from API"} />;
+  if (error) return <ErrorState title={isTh ? "โหลด Data Library ไม่สำเร็จ" : "Data Library loading failed"} description={error} onRetry={load} />;
 
   return (
     <div className="nimbus-depth-space space-y-8">
@@ -219,13 +180,9 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
         <div className="absolute -bottom-24 left-10 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
         <div className="relative">
           <Badge tone="purple">🧊 Data Library</Badge>
-          <h1 className="mt-5 max-w-4xl text-3xl font-black text-white sm:text-5xl">
-            {isTh ? "คลังข้อมูลเต็มของ Nimbus Daily" : "Nimbus Daily full data library"}
-          </h1>
+          <h1 className="mt-5 max-w-4xl text-3xl font-black text-white sm:text-5xl">{isTh ? "คลังข้อมูลเต็มของ Nimbus Daily" : "Nimbus Daily full data library"}</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-            {isTh
-              ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่ แยกหมวด ค้นหา และอ่านเต็มได้แบบ interactive"
-              : "Telegram sends compact summaries. All full collected data is stored here by category with search and interactive reading cards."}
+            {isTh ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่ แยกหมวด ค้นหา และอ่านเต็มได้แบบ interactive" : "Telegram sends compact summaries. All full collected data is stored here by category with search and interactive reading cards."}
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
             <Card className="p-4"><p className="text-sm text-slate-400">Runs</p><p className="text-3xl font-black text-white">{runs.length}</p></Card>
@@ -237,34 +194,18 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
 
       <Card className="p-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-          <input
-            className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={isTh ? "ค้นหาข้อมูลเต็ม เช่น AI, football, product, concert..." : "Search full data, sources, products, football, concerts..."}
-            value={query}
-          />
+          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข้อมูลเต็ม เช่น AI, football, product, concert..." : "Search full data, sources, products, football, concerts..."} value={query} />
           <div className="flex flex-wrap gap-2">
             {runId && <Button onClick={() => setRunId("")} type="button" variant="secondary">{isTh ? "ดูทุก run" : "View all runs"}</Button>}
             <Button onClick={load} type="button" variant="outline">🔄 {isTh ? "รีเฟรช" : "Refresh"}</Button>
           </div>
         </div>
         <div className="mt-5 flex flex-wrap gap-2">
-          {FILTERS.map((item) => (
-            <button
-              key={item.key}
-              className={`nimbus-button-3d rounded-full border px-3 py-2 text-xs font-bold transition ${filter === item.key ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"}`}
-              onClick={() => setFilter(item.key)}
-              type="button"
-            >
-              {item.icon} {isTh ? item.th : item.en}
-            </button>
-          ))}
+          {FILTERS.map((item) => <button key={item.key} className={`nimbus-button-3d rounded-full border px-3 py-2 text-xs font-bold transition ${filter === item.key ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"}`} onClick={() => setFilter(item.key)} type="button">{item.icon} {isTh ? item.th : item.en}</button>)}
         </div>
       </Card>
 
-      {visibleRuns.length === 0 ? (
-        <EmptyState title={isTh ? "ยังไม่มีข้อมูลในหมวดนี้" : "No data in this view"} description={isTh ? "ลองเปลี่ยน filter หรือรัน scheduler อีกครั้ง" : "Try another filter or run the scheduler again."} />
-      ) : (
+      {visibleRuns.length === 0 ? <EmptyState title={isTh ? "ยังไม่มีข้อมูลในหมวดนี้" : "No data in this view"} description={isTh ? "ลองเปลี่ยน filter หรือรัน scheduler อีกครั้ง" : "Try another filter or run the scheduler again."} /> : (
         <div className="grid gap-5 xl:grid-cols-2">
           {visibleRuns.map((run) => {
             const task = taskMap.get(run.taskId);
@@ -275,35 +216,21 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
               <Card key={run.id} className="nimbus-orbit p-5 sm:p-6">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                   <div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge tone="blue">{topic.icon} {isTh ? topic.th : topic.en}</Badge>
-                      <Badge tone={statusTone(run.status)}>{run.status}</Badge>
-                      <Badge tone={telegramTone(run.telegramStatus)}>📨 {run.telegramStatus || "unknown"}</Badge>
-                    </div>
+                    <div className="flex flex-wrap gap-2"><Badge tone="blue">{topic.icon} {isTh ? topic.th : topic.en}</Badge><Badge tone={statusTone(run.status)}>{run.status}</Badge><Badge tone={telegramTone(run.telegramStatus)}>📨 {run.telegramStatus || "unknown"}</Badge></div>
                     <h2 className="mt-4 text-xl font-black text-white">{isTh && run.translation?.translatedTitle ? run.translation.translatedTitle : run.gptOutput.title}</h2>
                     <p className="mt-3 text-sm leading-6 text-slate-300">{isTh ? run.translatedContent || run.translation?.translatedSummary || run.gptOutput.summary : run.gptOutput.summary}</p>
                   </div>
-                  <div className="shrink-0 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-right">
-                    <p className="text-2xl font-black text-cyan-100">{run.priorityScore}</p>
-                    <p className="text-[11px] uppercase tracking-wider text-slate-400">priority</p>
-                  </div>
+                  <div className="shrink-0 rounded-3xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-right"><p className="text-2xl font-black text-cyan-100">{run.priorityScore}</p><p className="text-[11px] uppercase tracking-wider text-slate-400">priority</p></div>
                 </div>
 
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Sources</p><p className="mt-1 font-black text-white">{sources.length}</p></div>
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Items</p><p className="mt-1 font-black text-white">{items.length}</p></div>
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Updated</p><p className="mt-1 truncate text-xs font-bold text-white">{formatDateTime(run.startedAt)}</p></div>
-                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3"><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Sources</p><p className="mt-1 font-black text-white">{sources.length}</p></div><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Items</p><p className="mt-1 font-black text-white">{items.length}</p></div><div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3"><p className="text-xs text-slate-500">Updated</p><p className="mt-1 truncate text-xs font-bold text-white">{formatDateTime(run.startedAt)}</p></div></div>
 
                 <div className="mt-5 space-y-4">
                   {sources.map((source, sourceIndex) => {
                     const sourceItems = itemsFromSource(source);
                     return (
                       <div key={`${run.id}-${sourceIndex}`} className="rounded-3xl border border-white/10 bg-slate-950/35 p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <h3 className="font-black text-white">🗂 {sourceName(source)}</h3>
-                          <Badge tone="gray">{sourceItems.length} items</Badge>
-                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-black text-white">🗂 {sourceName(source)}</h3><Badge tone="gray">{sourceItems.length} items</Badge></div>
                         <div className="mt-4 grid gap-3">
                           {sourceItems.slice(0, 8).map((item, itemIndex) => {
                             const main = itemMainText(item);
@@ -311,16 +238,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
                             return (
                               <div key={`${run.id}-${sourceIndex}-${itemIndex}`} className="nimbus-console-line rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                                 <p className="relative z-10 text-sm font-bold leading-6 text-cyan-50">{main || JSON.stringify(item).slice(0, 180)}</p>
-                                {rows.length > 0 && (
-                                  <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">
-                                    {rows.slice(0, 8).map(([rowLabel, value]) => (
-                                      <div key={`${rowLabel}-${value}`}>
-                                        <dt className="text-slate-500">{rowLabel}</dt>
-                                        <dd className="mt-1 break-words text-slate-200">{short(value, 160)}</dd>
-                                      </div>
-                                    ))}
-                                  </dl>
-                                )}
+                                {rows.length > 0 && <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">{rows.slice(0, 8).map(([rowLabel, value]) => <div key={`${rowLabel}-${value}`}><dt className="text-slate-500">{rowLabel}</dt><dd className="mt-1 break-words text-slate-200">{short(value, 160)}</dd></div>)}</dl>}
                               </div>
                             );
                           })}
@@ -331,10 +249,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
                   })}
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <Button asChild size="sm" variant="secondary"><Link href={`/task-results/${run.id}`}>{isTh ? "เปิดผลลัพธ์เดิม" : "Open original result"}</Link></Button>
-                  <Button asChild size="sm" variant="outline"><Link href={`/data-library?run=${run.id}`}>{isTh ? "ลิงก์ run นี้" : "Run link"}</Link></Button>
-                </div>
+                <div className="mt-5 flex flex-wrap gap-3"><Button asChild size="sm" variant="secondary"><Link href={`/task-results/${run.id}`}>{isTh ? "เปิดผลลัพธ์เดิม" : "Open original result"}</Link></Button><Button asChild size="sm" variant="outline"><Link href={`/data-library?run=${run.id}`}>{isTh ? "ลิงก์ run นี้" : "Run link"}</Link></Button></div>
               </Card>
             );
           })}

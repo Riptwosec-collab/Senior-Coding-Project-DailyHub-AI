@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Nimbus Daily",
-  description: "Scheduled GPT automation dashboard with OpenAI and Telegram integrations.",
+  description: "Scheduled GPT automation dashboard with AI, Telegram, and full data library integrations.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body>{children}</body>
+      <body className="nimbus-depth-space">{children}</body>
     </html>
   );
 }

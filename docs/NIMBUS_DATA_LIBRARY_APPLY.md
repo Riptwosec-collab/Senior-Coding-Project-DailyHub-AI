@@ -1,3 +1,5 @@
 ﻿# Nimbus Daily Data Library
 
-Step 2/10: basic heading shell.
+Step 3/10: topic plan.
+
+Topics: News, Weather, Product Radar, Email, Concert, Football, Weekend Ideas, Weekend Long Read.

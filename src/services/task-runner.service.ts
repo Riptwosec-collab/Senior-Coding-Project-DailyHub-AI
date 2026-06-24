@@ -66,7 +66,10 @@ export async function runTaskNow(taskId: string, options: RunTaskNowOptions = {}
   const startedAt = new Date().toISOString();
   await updateScheduledTask(task.id, { status: "Running", isActive: true, updatedAt: startedAt }, options.schedulerMode ? undefined : options.userId);
 
-  const effectiveTask = buildTelegramTask(task, options.forceTelegram);
+  // Dashboard/manual Run Now should be an end-to-end test and send Telegram for every task.
+  // Scheduler mode keeps the normal production rules: output channel + priority threshold.
+  const shouldForceTelegram = options.forceTelegram === true || options.schedulerMode !== true;
+  const effectiveTask = buildTelegramTask(task, shouldForceTelegram);
   const rawInput = await collectTaskDataSources(effectiveTask);
   const gptPrompt = buildGptPrompt(effectiveTask, rawInput);
 
@@ -163,7 +166,7 @@ export async function regenerateTaskRun(runId: string, userId?: string) {
       finishedAt: now,
       rawInput: translatedRawInput,
       gptPrompt,
-      gptOutput,
+      gptOutput: translatedGptOutput,
       priorityScore: 0,
       telegramStatus: "skipped_failed",
       errorMessage,

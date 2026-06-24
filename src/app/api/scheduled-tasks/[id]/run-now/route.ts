@@ -10,9 +10,15 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+function isForceTelegramRequest(request: Request) {
+  const url = new URL(request.url);
+  return url.searchParams.get("forceTelegram") === "true" || url.searchParams.get("force") === "telegram";
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const requestId = getRequestId(request);
   const { id } = await context.params;
+  const forceTelegram = isForceTelegramRequest(request);
 
   try {
     const ip = getClientIp(request);
@@ -28,11 +34,11 @@ export async function POST(request: Request, context: RouteContext) {
       action: "scheduled_task.run_now.requested",
       entityType: "scheduled_task",
       entityId: id,
-      message: `Run Now requested for task ${id}`,
+      message: `Run Now requested for task ${id}${forceTelegram ? " with forced Telegram" : ""}`,
       requestId,
     });
 
-    const result = await runTaskNow(id);
+    const result = await runTaskNow(id, { forceTelegram });
     if (!result) throw notFound(`Scheduled task ${id} was not found`);
 
     recordUsageEvent({
@@ -41,6 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
         taskId: id,
         taskRunId: result.taskRun.id,
         priorityScore: result.taskRun.priorityScore,
+        forceTelegram,
       },
     });
 
@@ -49,7 +56,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (result.taskRun.telegramStatus === "sent" || result.taskRun.telegramStatus.startsWith("mock_sent")) {
-      recordUsageEvent({ type: "telegram_send", metadata: { taskId: id, taskRunId: result.taskRun.id } });
+      recordUsageEvent({ type: "telegram_send", metadata: { taskId: id, taskRunId: result.taskRun.id, forceTelegram } });
     }
 
     await audit({
@@ -62,6 +69,7 @@ export async function POST(request: Request, context: RouteContext) {
         taskRunId: result.taskRun.id,
         priorityScore: result.taskRun.priorityScore,
         telegramStatus: result.taskRun.telegramStatus,
+        forceTelegram,
       },
     });
 
@@ -70,7 +78,8 @@ export async function POST(request: Request, context: RouteContext) {
         task: result.task,
         taskRun: result.taskRun,
         notification: result.notification,
-        message: "Run Now completed.",
+        forceTelegram,
+        message: forceTelegram ? "Run Now completed and Telegram was forced." : "Run Now completed.",
       },
       { requestId },
     );
@@ -82,7 +91,7 @@ export async function POST(request: Request, context: RouteContext) {
       level: "error",
       message: `Run Now failed for task ${id}`,
       requestId,
-      metadata: { error: error instanceof Error ? error.message : String(error) },
+      metadata: { error: error instanceof Error ? error.message : String(error), forceTelegram },
     });
 
     return fail(error, requestId);

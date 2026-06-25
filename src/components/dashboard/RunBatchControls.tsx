@@ -7,25 +7,6 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-type BatchId = "one" | "two" | "all";
-
-type BatchResult = {
-  batch: BatchId;
-  summary: {
-    requestedCount: number;
-    sentCount: number;
-    failedCount: number;
-    createdCount: number;
-  };
-  results: Array<{
-    taskName: string;
-    taskType: string;
-    status: string;
-    telegramStatus: string;
-    error?: string;
-  }>;
-};
-
 type TaskSeed = {
   key: string;
   labelTh: string;
@@ -64,8 +45,8 @@ const FIXED_BATCHES = [
   },
 ];
 
-const buttonClass = "inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
-const primaryButtonClass = "inline-flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+const nativeButtonClass = "relative z-50 inline-flex min-h-12 min-w-[9.5rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.08] px-6 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:border-cyan-300/40 hover:bg-cyan-300/15 active:scale-[0.98]";
+const nativePrimaryButtonClass = "relative z-50 inline-flex min-h-12 min-w-[11rem] shrink-0 items-center justify-center whitespace-nowrap rounded-2xl bg-gradient-to-r from-cyan-400 to-violet-500 px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95 active:scale-[0.98]";
 
 function getBatchSeeds(keys: string[]) {
   return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[];
@@ -79,13 +60,23 @@ function taskLines(seeds: TaskSeed[], isTh: boolean) {
   return seeds.map((seed, index) => `${index + 1}. ${seed.emoji} ${isTh ? seed.labelTh : seed.labelEn}`);
 }
 
+function BatchForm({ batch, label, primary = false }: { batch: "one" | "two" | "all"; label: string; primary?: boolean }) {
+  return (
+    <form action="/api/scheduled-tasks/run-batch" className="relative z-50 shrink-0" method="post">
+      <input name="batch" type="hidden" value={batch} />
+      <input name="redirect" type="hidden" value="/dashboard" />
+      <button className={primary ? nativePrimaryButtonClass : nativeButtonClass} type="submit">
+        {label}
+      </button>
+    </form>
+  );
+}
+
 export function RunBatchControls() {
   const { lang, t } = useLanguage();
   const isTh = lang === "th";
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
-  const [loading, setLoading] = useState<BatchId | null>(null);
   const [message, setMessage] = useState(t("batch_ready"));
-  const [lastResults, setLastResults] = useState<BatchResult["results"]>([]);
 
   async function loadTasks() {
     const data = await apiRequest<ScheduledTask[]>("/api/scheduled-tasks");
@@ -97,8 +88,8 @@ export function RunBatchControls() {
   }, []);
 
   useEffect(() => {
-    if (!loading) setMessage(t("batch_ready"));
-  }, [lang, loading, t]);
+    setMessage(t("batch_ready"));
+  }, [lang, t]);
 
   const resolvedBatches = useMemo(
     () =>
@@ -112,40 +103,6 @@ export function RunBatchControls() {
 
   const readyCount = resolvedBatches.reduce((total, batch) => total + batch.foundCount, 0);
 
-  async function runBatch(batchId: BatchId) {
-    if (loading) return;
-
-    const batchName =
-      batchId === "all"
-        ? isTh ? "ทั้ง 2 ปุ่ม" : "both buttons"
-        : isTh
-          ? batchId === "one" ? "ปุ่มแรก" : "ปุ่มสอง"
-          : batchId === "one" ? "first button" : "second button";
-
-    setLoading(batchId);
-    setLastResults([]);
-    setMessage(isTh ? `รับคำสั่งแล้ว กำลังรัน ${batchName}...` : `Clicked. Running ${batchName}...`);
-
-    try {
-      const result = await apiRequest<BatchResult>("/api/scheduled-tasks/run-batch", {
-        method: "POST",
-        body: JSON.stringify({ batch: batchId }),
-      });
-
-      setLastResults(result.results ?? []);
-      setMessage(
-        isTh
-          ? `${batchName} เสร็จแล้ว: ส่ง ${result.summary.sentCount}/${result.summary.requestedCount}, ผิดพลาด ${result.summary.failedCount}, สร้างใหม่ ${result.summary.createdCount}`
-          : `${batchName} complete: sent ${result.summary.sentCount}/${result.summary.requestedCount}, failed ${result.summary.failedCount}, created ${result.summary.createdCount}`,
-      );
-      await loadTasks();
-    } catch (error) {
-      setMessage(toErrorMessage(error));
-    } finally {
-      setLoading(null);
-    }
-  }
-
   return (
     <Card className="relative overflow-hidden border-emerald-300/20 bg-emerald-300/[0.05] p-5 sm:p-6">
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-400/20 blur-3xl" />
@@ -156,29 +113,18 @@ export function RunBatchControls() {
             <h2 className="mt-3 text-2xl font-black text-white">{t("batch_title")}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("batch_desc")}</p>
           </div>
-          <button
-            aria-busy={loading === "all"}
-            className={primaryButtonClass}
-            disabled={Boolean(loading)}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              void runBatch("all");
-            }}
-            type="button"
-          >
-            {loading === "all" ? t("batch_running") : `🚀 ${t("batch_run_all")}`}
-          </button>
+          <BatchForm batch="all" label={`🚀 ${t("batch_run_all")}`} primary />
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
           {resolvedBatches.map((batch) => {
             const missingCount = batch.seeds.length - batch.foundCount;
             const batchTitle = isTh ? batch.titleTh : batch.titleEn;
+            const buttonLabel = `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`;
             return (
               <div key={batch.id} className="rounded-3xl border border-white/10 bg-slate-950/40 p-4 shadow-2xl shadow-black/20">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{batchTitle}</p>
                     <h3 className="mt-1 text-lg font-black text-white">{isTh ? batch.subtitleTh : batch.subtitleEn}</h3>
                     <p className="mt-1 text-xs text-slate-400">
@@ -187,19 +133,7 @@ export function RunBatchControls() {
                         : `Ready ${batch.foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}
                     </p>
                   </div>
-                  <button
-                    aria-busy={loading === batch.id}
-                    className={buttonClass}
-                    disabled={Boolean(loading)}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      void runBatch(batch.id);
-                    }}
-                    type="button"
-                  >
-                    {loading === batch.id ? t("batch_running") : `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`}
-                  </button>
+                  <BatchForm batch={batch.id} label={buttonLabel} />
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
@@ -212,19 +146,8 @@ export function RunBatchControls() {
           })}
         </div>
 
-        <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
-          <p>{message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}</p>
-          {lastResults.length > 0 && (
-            <div className="grid gap-2 md:grid-cols-2">
-              {lastResults.map((item) => (
-                <div key={`${item.taskName}-${item.telegramStatus}`} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs leading-5">
-                  <span className="font-bold text-white">{item.taskName}</span>
-                  <span className="text-slate-400"> · {item.status} · Telegram: {item.telegramStatus}</span>
-                  {item.error ? <p className="text-rose-200">{item.error}</p> : null}
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
+          {message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}
         </div>
       </div>
     </Card>

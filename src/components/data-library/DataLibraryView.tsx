@@ -23,7 +23,7 @@ const TOPICS: Topic[] = [
   { key: "weather", icon: "🌦️", th: "สภาพอากาศ", en: "Weather", pattern: /weather|forecast|rain|temperature|อากาศ|ฝน/i },
   { key: "product", icon: "🌍", th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar", pattern: /sale|product|price|radar|gadget|สินค้า|โปร/i },
   { key: "email", icon: "📧", th: "อีเมลสำคัญ", en: "Email Monitor", pattern: /email|gmail|mail|inbox|อีเมล/i },
-  { key: "concert", icon: "🎤", th: "คอนเสิร์ต", en: "Concert Alerts", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน/i },
+  { key: "concert", icon: "🎤", th: "คอนเสิร์ตในไทย", en: "Thailand Concert Alerts", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน|thailand|bangkok/i },
   { key: "football", icon: "⚽", th: "ฟุตบอล", en: "Football", pattern: /football|soccer|world cup|match|score|team|บอล|ฟุตบอล/i },
   { key: "ideas", icon: "🧭", th: "ไอเดียวันหยุด", en: "Weekend Ideas", pattern: /weekend ideas|weekend idea|trip|travel|idea|เที่ยว|ไอเดีย/i },
   { key: "longread", icon: "📚", th: "บทความอ่านยาว", en: "Long Read", pattern: /weekend long read|long read|article|reading|บทความ|อ่านยาว/i },
@@ -40,7 +40,7 @@ const LEGACY_SOURCE_MAP: Array<{ key: string; source: string; title: string }> =
   { key: "weather", source: "Weather API", title: "Weather update" },
   { key: "football", source: "Football API", title: "Football Recap" },
   { key: "products", source: "Global Product Radar", title: "Global Product Radar" },
-  { key: "concerts", source: "Concert API", title: "Concert Alerts" },
+  { key: "concerts", source: "Concert API Thailand Only", title: "Thailand Concert Alerts" },
   { key: "articles", source: "Weekend Long Read", title: "Weekend Long Read" },
   { key: "gmail", source: "Gmail", title: "Email Monitor" },
 ];
@@ -70,7 +70,7 @@ function normalizeLegacyItems(value: unknown, source: string) {
       if (source === "Football API") return { match: text, teamNames: text, highlight: text };
       if (source === "News") return { title: text, description: text, fullArticle: text };
       if (source === "Gmail") return { subject: text, description: text };
-      if (source === "Concert API") return { artist: text, title: text, description: text };
+      if (source.includes("Concert")) return { artist: text, eventName: text, description: text };
       if (source === "Weekend Long Read") return { title: text, fullArticle: text, description: text };
       return { title: text, description: text };
     });
@@ -138,10 +138,24 @@ function topicFor(task?: ScheduledTask, run?: TaskRun) {
 function itemMainText(item: unknown) {
   const row = asRecord(item);
   if (!row) return String(item ?? "");
-  return [row.teamNames, row.match, row.product, row.title, row.idea, row.subject, row.artist, row.location, row.description, row.highlight, row.whyInteresting]
+  return [
+    row.teamNames,
+    row.match,
+    row.eventName,
+    row.artist,
+    row.product,
+    row.title,
+    row.idea,
+    row.subject,
+    row.venue,
+    row.city,
+    row.description,
+    row.highlight,
+    row.whyInteresting,
+  ]
     .map(asText)
     .filter(Boolean)
-    .slice(0, 3)
+    .slice(0, 4)
     .join(" — ");
 }
 
@@ -149,6 +163,23 @@ function detailRows(item: unknown): Array<[string, string]> {
   const row = asRecord(item);
   if (!row) return [];
   const pairs: Array<[string, unknown]> = [
+    ["ชื่องาน / Event", row.eventName],
+    ["ศิลปิน / Artist", row.artist],
+    ["ประเทศ / Country", row.country],
+    ["เมือง / City", row.city],
+    ["สถานที่ / Venue", row.venue],
+    ["โซน / Area", row.area],
+    ["วันที่ / Date", row.date],
+    ["เวลา / Time", row.time],
+    ["แนวเพลง / Genre", row.genre],
+    ["สถานะบัตร / Ticket status", row.ticketStatus],
+    ["วันขายบัตร / Sale date", row.saleDate],
+    ["ราคา / Price", row.priceRange || row.currentPrice || row.price],
+    ["คำแนะนำซื้อตั๋ว / Ticket tips", row.ticketTips],
+    ["Checklist", row.checklist || row.checkBeforeBuy],
+    ["การเดินทาง / Travel note", row.travelNote],
+    ["มุมทำคอนเทนต์ / Content angle", row.contentAngle],
+    ["เหตุผล Priority / Priority reason", row.priorityReason],
     ["ทีม / Teams", row.teamNames || (row.homeTeam && row.awayTeam ? `${row.homeTeam} vs ${row.awayTeam}` : "")],
     ["ทีมเหย้า / Home", row.homeTeam],
     ["ทีมเยือน / Away", row.awayTeam],
@@ -159,18 +190,19 @@ function detailRows(item: unknown): Array<[string, string]> {
     ["รายการ / Competition", row.competition],
     ["หมวด / Category", row.category],
     ["แหล่งข่าว / Source", row.source],
-    ["วันที่ / Published", row.publishedAt],
+    ["วันที่เผยแพร่ / Published", row.publishedAt],
     ["เวลาอ่าน / Read time", row.readTime],
     ["รายละเอียดเต็ม / Full article", row.fullArticle || row.content],
     ["ประเด็นสำคัญ / Key points", row.keyPoints],
     ["ทำไมสำคัญ / Why it matters", row.whyItMatters],
-    ["แหล่งเทรนด์ / Trend source", row.trendSource || row.country],
-    ["แบรนด์ / Brand", row.brand || row.maker || row.store],
+    ["แหล่งเทรนด์ / Trend source", row.trendSource || row.globalSource],
+    ["แบรนด์ / Brand", row.brand || row.maker || row.store || row.brandOrMaker],
     ["เหตุผลที่น่าสนใจ / Why", row.whyInteresting || row.why || row.reason],
     ["จุดเด่น / Highlight", row.highlight || row.feature || row.keyMoment],
     ["เหมาะกับ / For", row.targetUser || row.audience],
-    ["ราคา / Price", row.priceRange || row.currentPrice || row.price],
-    ["ควรเช็ก / Check", row.checkBeforeBuy || row.action],
+    ["กรณีใช้งาน / Use case", row.useCase],
+    ["ข้อควรระวัง / Caution", row.caution],
+    ["ควรทำต่อ / Action", row.action],
     ["ลิงก์ / Link", row.url || row.link],
   ];
 
@@ -252,7 +284,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
           <Badge tone="purple">🧊 Data Library</Badge>
           <h1 className="mt-5 max-w-4xl text-3xl font-black text-white sm:text-5xl">{isTh ? "คลังข้อมูลเต็มของ Nimbus Daily" : "Nimbus Daily full data library"}</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-            {isTh ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข่าวเต็ม รายชื่อทีมฟุตบอล และข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่" : "Telegram sends compact summaries. Full news, football team names, and all collected data are stored here."}
+            {isTh ? "Telegram ส่งเฉพาะสรุปสั้น ส่วนข่าวเต็ม คอนเสิร์ตในไทย รายชื่อทีมฟุตบอล และข้อมูลจำนวนมากทั้งหมดถูกเก็บไว้ที่นี่" : "Telegram sends compact summaries. Full news, Thailand concerts, football team names, and all collected data are stored here."}
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
             <Card className="p-4"><p className="text-sm text-slate-400">Runs</p><p className="text-3xl font-black text-white">{runs.length}</p></Card>
@@ -264,7 +296,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
 
       <Card className="p-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข่าวเต็ม ทีมฟุตบอล สินค้า คอนเสิร์ต..." : "Search full news, football teams, products, concerts..."} value={query} />
+          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข่าวเต็ม คอนเสิร์ตไทย ทีมฟุตบอล สินค้า..." : "Search full news, Thailand concerts, football teams, products..."} value={query} />
           <div className="flex flex-wrap gap-2">
             {runId && <Button onClick={() => setRunId("")} type="button" variant="secondary">{isTh ? "ดูทุก run" : "View all runs"}</Button>}
             <Button onClick={load} type="button" variant="outline">🔄 {isTh ? "รีเฟรช" : "Refresh"}</Button>
@@ -308,7 +340,7 @@ export function DataLibraryView({ initialRunId = "" }: { initialRunId?: string }
                             return (
                               <div key={`${run.id}-${sourceIndex}-${itemIndex}`} className="nimbus-console-line rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                                 <p className="relative z-10 text-sm font-bold leading-6 text-cyan-50">{main || JSON.stringify(item).slice(0, 180)}</p>
-                                {rows.length > 0 && <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">{rows.slice(0, 12).map(([rowLabel, value]) => <div key={`${rowLabel}-${value}`} className={rowLabel.includes("รายละเอียดเต็ม") || rowLabel.includes("Key points") ? "sm:col-span-2" : ""}><dt className="text-slate-500">{rowLabel}</dt><dd className="mt-1 whitespace-pre-line break-words text-slate-200">{short(value, rowLabel.includes("รายละเอียดเต็ม") ? 900 : 220)}</dd></div>)}</dl>}
+                                {rows.length > 0 && <dl className="relative z-10 mt-3 grid gap-2 text-xs leading-5 text-slate-300 sm:grid-cols-2">{rows.slice(0, 18).map(([rowLabel, value]) => <div key={`${rowLabel}-${value}`} className={rowLabel.includes("รายละเอียดเต็ม") || rowLabel.includes("Key points") || rowLabel.includes("Ticket tips") || rowLabel.includes("Checklist") || rowLabel.includes("Content angle") ? "sm:col-span-2" : ""}><dt className="text-slate-500">{rowLabel}</dt><dd className="mt-1 whitespace-pre-line break-words text-slate-200">{short(value, rowLabel.includes("รายละเอียดเต็ม") || rowLabel.includes("Ticket tips") || rowLabel.includes("Checklist") ? 900 : 260)}</dd></div>)}</dl>}
                               </div>
                             );
                           })}

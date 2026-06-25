@@ -7,6 +7,7 @@ export type ScheduledTaskType =
   | "World Cup Recap"
   | "Weekend Long Read"
   | "Concert Alerts"
+  | "US Stock News"
   | "Weekend Ideas"
   | "Custom";
 

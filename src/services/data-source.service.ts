@@ -59,15 +59,15 @@ async function safeSource(source: string, handler: () => Promise<DataSourceResul
 }
 
 function sourceHandler(source: string, task: ScheduledTask) {
-  if (source === "News") return () => fetchNewsUpdates(task);
-  if (source === "Gmail") return () => fetchEmailUpdates(task);
-  if (["Product Prices", "Global Product Radar", "Product Trends", "สินค้าออกใหม่/น่าสนใจจากทั่วโลก"].includes(source)) {
+  if (source === "News" || source === "World News") return () => fetchNewsUpdates(task);
+  if (source === "Gmail" || source === "Gmail Daily Digest") return () => fetchEmailUpdates(task);
+  if (["Product Prices", "Global Product Radar", "Global Innovation Product Radar", "Product Trends", "สินค้าออกใหม่/น่าสนใจจากทั่วโลก"].includes(source)) {
     return () => fetchSaleUpdates(task);
   }
-  if (source === "Football API") return () => fetchFootballUpdates(task);
+  if (source === "Football API" || source === "Football News Hub") return () => fetchFootballUpdates(task);
   if (source === "Weather API") return () => fetchWeatherUpdates(task);
-  if (source === "Concert API") return () => fetchConcertUpdates(task);
-  if (source === "Weekend Ideas") return () => fetchWeekendIdeasInput(task);
+  if (source === "Concert API" || source === "Concert API Thailand Only") return () => fetchConcertUpdates(task);
+  if (source === "Weekend Ideas" || source === "US Stock News") return () => fetchWeekendIdeasInput(task);
   if (source === "Weekend Long Read") return () => fetchWeekendLongReadUpdates(task);
   return () => fetchNewsUpdates(task);
 }
@@ -75,23 +75,24 @@ function sourceHandler(source: string, task: ScheduledTask) {
 function getEffectiveSources(task: ScheduledTask) {
   const sources = task.dataSources.length > 0 ? [...task.dataSources] : ["News"];
 
-  // Some task types need their own structured payload even when the UI shows
-  // generic sources such as News or Weather API. This ensures Telegram gets
-  // dedicated Weekend / Football / Product sections instead of raw mixed data.
-  if (task.type === "Weekend Ideas" && !sources.includes("Weekend Ideas")) {
-    sources.unshift("Weekend Ideas");
+  if (task.type === "Weekend Ideas" && !sources.includes("US Stock News")) {
+    sources.unshift("US Stock News");
   }
 
   if (task.type === "Weekend Long Read" && !sources.includes("Weekend Long Read")) {
     sources.unshift("Weekend Long Read");
   }
 
-  if (task.type === "World Cup Recap" && !sources.includes("Football API")) {
-    sources.unshift("Football API");
+  if (task.type === "World Cup Recap" && !sources.includes("Football News Hub")) {
+    sources.unshift("Football News Hub");
   }
 
-  if (task.type === "Sale Monitor" && !sources.includes("Global Product Radar")) {
-    sources.unshift("Global Product Radar");
+  if (task.type === "Sale Monitor" && !sources.includes("Global Innovation Product Radar")) {
+    sources.unshift("Global Innovation Product Radar");
+  }
+
+  if (task.type === "Email Monitor" && !sources.includes("Gmail Daily Digest")) {
+    sources.unshift("Gmail Daily Digest");
   }
 
   return Array.from(new Set(sources));

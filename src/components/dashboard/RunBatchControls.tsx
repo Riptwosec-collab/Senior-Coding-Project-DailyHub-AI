@@ -8,14 +8,23 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const TASK_DELAY_MS = 1500;
-const BATCH_DELAY_MS = 3000;
+type BatchId = "one" | "two" | "all";
 
-type RunNowResponse = {
-  taskRun?: {
-    status?: string;
-    telegramStatus?: string | null;
+type BatchResult = {
+  batch: BatchId;
+  summary: {
+    requestedCount: number;
+    sentCount: number;
+    failedCount: number;
+    createdCount: number;
   };
+  results: Array<{
+    taskName: string;
+    taskType: string;
+    status: string;
+    telegramStatus: string;
+    error?: string;
+  }>;
 };
 
 type TaskSeed = {
@@ -25,138 +34,36 @@ type TaskSeed = {
   emoji: string;
   name: string;
   type: ScheduledTask["type"];
-  scheduleType: ScheduledTask["scheduleType"];
-  cronExpression: string;
-  time: string | null;
-  dataSources: string[];
-  gptActions: string[];
-  minPriorityScore: number;
 };
 
 const DEFAULT_TASKS: TaskSeed[] = [
-  {
-    key: "daily-brief",
-    labelTh: "Morning Daily Brief",
-    labelEn: "Morning Daily Brief",
-    emoji: "📰",
-    name: "Morning Daily Brief",
-    type: "Daily Brief",
-    scheduleType: "Daily",
-    cronExpression: "0 8 * * *",
-    time: "08:00",
-    dataSources: ["News", "Weather API"],
-    gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
-    minPriorityScore: 70,
-  },
-  {
-    key: "global-product-radar",
-    labelTh: "สินค้าใหม่/น่าสนใจทั่วโลก",
-    labelEn: "Global Product Radar",
-    emoji: "🌍",
-    name: "สินค้าใหม่/น่าสนใจทั่วโลก",
-    type: "Sale Monitor",
-    scheduleType: "Hourly",
-    cronExpression: "0 * * * *",
-    time: null,
-    dataSources: ["Global Product Radar"],
-    gptActions: ["Analyze Priority", "Generate Caption", "Recommend Action"],
-    minPriorityScore: 70,
-  },
-  {
-    key: "weekend-ideas",
-    labelTh: "Weekend Ideas Generator",
-    labelEn: "Weekend Ideas Generator",
-    emoji: "🧭",
-    name: "Weekend Ideas Generator",
-    type: "Weekend Ideas",
-    scheduleType: "Weekly",
-    cronExpression: "0 9 * * 6",
-    time: "09:00",
-    dataSources: ["Weather API", "News", "Weekend Ideas"],
-    gptActions: ["Summarize", "Recommend Action", "Generate Image Prompt"],
-    minPriorityScore: 60,
-  },
-  {
-    key: "email-monitor",
-    labelTh: "Important Email Monitor",
-    labelEn: "Important Email Monitor",
-    emoji: "📧",
-    name: "Important Email Monitor",
-    type: "Email Monitor",
-    scheduleType: "Hourly",
-    cronExpression: "*/30 * * * *",
-    time: null,
-    dataSources: ["Gmail"],
-    gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
-    minPriorityScore: 80,
-  },
-  {
-    key: "concert-alerts",
-    labelTh: "Concert Alerts Near Me",
-    labelEn: "Concert Alerts Near Me",
-    emoji: "🎤",
-    name: "Concert Alerts Near Me",
-    type: "Concert Alerts",
-    scheduleType: "Daily",
-    cronExpression: "0 20 * * *",
-    time: "20:00",
-    dataSources: ["Concert API"],
-    gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
-    minPriorityScore: 75,
-  },
-  {
-    key: "football-recap",
-    labelTh: "Football Recap Nightly",
-    labelEn: "Football Recap Nightly",
-    emoji: "⚽",
-    name: "Football Recap Nightly",
-    type: "World Cup Recap",
-    scheduleType: "Daily",
-    cronExpression: "0 23 * * *",
-    time: "23:00",
-    dataSources: ["Football API"],
-    gptActions: ["Summarize", "Generate Caption", "Recommend Action"],
-    minPriorityScore: 65,
-  },
-  {
-    key: "weekend-long-read",
-    labelTh: "Weekend Long Read Picker",
-    labelEn: "Weekend Long Read Picker",
-    emoji: "📚",
-    name: "Weekend Long Read Picker",
-    type: "Weekend Long Read",
-    scheduleType: "Weekly",
-    cronExpression: "0 10 * * 6",
-    time: "10:00",
-    dataSources: ["News", "Weekend Long Read"],
-    gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
-    minPriorityScore: 55,
-  },
+  { key: "daily-brief", labelTh: "Morning Daily Brief", labelEn: "Morning Daily Brief", emoji: "📰", name: "Morning Daily Brief", type: "Daily Brief" },
+  { key: "global-product-radar", labelTh: "สินค้าใหม่/น่าสนใจทั่วโลก", labelEn: "Global Product Radar", emoji: "🌍", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor" },
+  { key: "weekend-ideas", labelTh: "Weekend Ideas Generator", labelEn: "Weekend Ideas Generator", emoji: "🧭", name: "Weekend Ideas Generator", type: "Weekend Ideas" },
+  { key: "email-monitor", labelTh: "Important Email Monitor", labelEn: "Important Email Monitor", emoji: "📧", name: "Important Email Monitor", type: "Email Monitor" },
+  { key: "concert-alerts", labelTh: "Concert Alerts Near Me", labelEn: "Concert Alerts Near Me", emoji: "🎤", name: "Concert Alerts Near Me", type: "Concert Alerts" },
+  { key: "football-recap", labelTh: "Football Recap Nightly", labelEn: "Football Recap Nightly", emoji: "⚽", name: "Football Recap Nightly", type: "World Cup Recap" },
+  { key: "weekend-long-read", labelTh: "Weekend Long Read Picker", labelEn: "Weekend Long Read Picker", emoji: "📚", name: "Weekend Long Read Picker", type: "Weekend Long Read" },
 ];
-
-const BATCH_ONE_KEYS = ["daily-brief", "global-product-radar", "weekend-ideas", "email-monitor"];
-const BATCH_TWO_KEYS = ["concert-alerts", "football-recap", "weekend-long-read"];
 
 const FIXED_BATCHES = [
   {
+    id: "one" as const,
     titleTh: "ปุ่มแรก",
     titleEn: "First button",
     subtitleTh: "Daily Brief / Product / Weekend Ideas / Email",
     subtitleEn: "Daily Brief / Product / Weekend Ideas / Email",
-    keys: BATCH_ONE_KEYS,
+    keys: ["daily-brief", "global-product-radar", "weekend-ideas", "email-monitor"],
   },
   {
+    id: "two" as const,
     titleTh: "ปุ่มสอง",
     titleEn: "Second button",
     subtitleTh: "Concert / Football / Long Read",
     subtitleEn: "Concert / Football / Long Read",
-    keys: BATCH_TWO_KEYS,
+    keys: ["concert-alerts", "football-recap", "weekend-long-read"],
   },
 ];
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function getBatchSeeds(keys: string[]) {
   return keys.map((key) => DEFAULT_TASKS.find((task) => task.key === key)).filter(Boolean) as TaskSeed[];
@@ -164,14 +71,6 @@ function getBatchSeeds(keys: string[]) {
 
 function matchesTask(task: ScheduledTask, seed: TaskSeed) {
   return task.type === seed.type || task.name.toLowerCase() === seed.name.toLowerCase();
-}
-
-function findTask(tasks: ScheduledTask[], seed: TaskSeed) {
-  return tasks.find((task) => matchesTask(task, seed));
-}
-
-function sentStatus(status?: string | null) {
-  return status === "sent" || Boolean(status?.startsWith("mock_sent"));
 }
 
 function taskLines(seeds: TaskSeed[], isTh: boolean) {
@@ -182,8 +81,9 @@ export function RunBatchControls() {
   const { lang, t } = useLanguage();
   const isTh = lang === "th";
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<BatchId | null>(null);
   const [message, setMessage] = useState(t("batch_ready"));
+  const [lastResults, setLastResults] = useState<BatchResult["results"]>([]);
 
   async function loadTasks() {
     const data = await apiRequest<ScheduledTask[]>("/api/scheduled-tasks");
@@ -202,116 +102,32 @@ export function RunBatchControls() {
     () =>
       FIXED_BATCHES.map((batch) => {
         const seeds = getBatchSeeds(batch.keys);
-        const found = seeds.map((seed) => ({ seed, task: findTask(tasks, seed) }));
-        return { ...batch, seeds, found };
+        const foundCount = seeds.filter((seed) => tasks.some((task) => matchesTask(task, seed))).length;
+        return { ...batch, seeds, foundCount };
       }),
     [tasks],
   );
 
-  const readyCount = resolvedBatches.flatMap((batch) => batch.found).filter((item) => item.task).length;
+  const readyCount = resolvedBatches.reduce((total, batch) => total + batch.foundCount, 0);
 
-  async function createMissingTasks(seeds: TaskSeed[]) {
-    const created: ScheduledTask[] = [];
+  async function runBatch(batchId: BatchId) {
+    setLoading(batchId);
+    setLastResults([]);
+    const batchName = batchId === "all" ? (isTh ? "ทั้ง 2 ปุ่ม" : "both buttons") : isTh ? (batchId === "one" ? "ปุ่มแรก" : "ปุ่มสอง") : (batchId === "one" ? "first button" : "second button");
+    setMessage(isTh ? `กำลังรัน ${batchName}...` : `Running ${batchName}...`);
 
-    for (const seed of seeds) {
-      const task = await apiRequest<ScheduledTask>("/api/scheduled-tasks", {
+    try {
+      const result = await apiRequest<BatchResult>("/api/scheduled-tasks/run-batch", {
         method: "POST",
-        body: JSON.stringify({
-          name: seed.name,
-          type: seed.type,
-          scheduleType: seed.scheduleType,
-          cronExpression: seed.cronExpression,
-          time: seed.time,
-          timezone: "Asia/Bangkok",
-          dataSources: seed.dataSources,
-          gptActions: seed.gptActions,
-          outputChannels: ["Save to Web Dashboard", "Save to Notifications", "Send Telegram"],
-          minPriorityScore: seed.minPriorityScore,
-          isActive: true,
-        }),
+        body: JSON.stringify({ batch: batchId }),
       });
-      created.push(task);
-      await delay(350);
-    }
 
-    return created;
-  }
-
-  async function ensureBatchTasks(seeds: TaskSeed[]) {
-    const missing = seeds.filter((seed) => !findTask(tasks, seed));
-    if (missing.length) {
-      setMessage(isTh ? `กำลังเติม task ที่ขาด ${missing.length} รายการ...` : `Creating ${missing.length} missing task(s)...`);
-      await createMissingTasks(missing);
-      const latest = await apiRequest<ScheduledTask[]>("/api/scheduled-tasks");
-      setTasks(latest);
-      return seeds.map((seed) => findTask(latest, seed)).filter(Boolean) as ScheduledTask[];
-    }
-
-    return seeds.map((seed) => findTask(tasks, seed)).filter(Boolean) as ScheduledTask[];
-  }
-
-  async function runBatch(batchIndex: number) {
-    const batch = resolvedBatches[batchIndex];
-    if (!batch) return;
-    const batchTitle = isTh ? batch.titleTh : batch.titleEn;
-
-    setLoading(`batch-${batchIndex}`);
-    setMessage(isTh ? `กำลังรัน ${batchTitle}...` : `Running ${batchTitle}...`);
-
-    try {
-      const runnableTasks = await ensureBatchTasks(batch.seeds);
-      let sent = 0;
-      let failed = 0;
-
-      for (const [index, task] of runnableTasks.entries()) {
-        try {
-          const result = await apiRequest<RunNowResponse>(`/api/scheduled-tasks/${task.id}/run-now`, { method: "POST" });
-          if (sentStatus(result.taskRun?.telegramStatus)) sent += 1;
-          if (result.taskRun?.status === "failed" || result.taskRun?.telegramStatus?.includes("failed")) failed += 1;
-        } catch {
-          failed += 1;
-        }
-
-        if (index < runnableTasks.length - 1) await delay(TASK_DELAY_MS);
-      }
-
-      setMessage(isTh ? `${batchTitle} เสร็จแล้ว: ส่ง ${sent}/${batch.seeds.length}, ผิดพลาด ${failed}` : `${batchTitle} complete: sent ${sent}/${batch.seeds.length}, failed ${failed}`);
-      await loadTasks();
-    } catch (error) {
-      setMessage(toErrorMessage(error));
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function runAllBatches() {
-    setLoading("all");
-    let sent = 0;
-    let failed = 0;
-    let expected = 0;
-
-    try {
-      for (const [index, batch] of resolvedBatches.entries()) {
-        const batchTitle = isTh ? batch.titleTh : batch.titleEn;
-        setMessage(isTh ? `กำลังรัน ${batchTitle} (${index + 1}/${resolvedBatches.length})...` : `Running ${batchTitle} (${index + 1}/${resolvedBatches.length})...`);
-        const runnableTasks = await ensureBatchTasks(batch.seeds);
-        expected += batch.seeds.length;
-
-        for (const [taskIndex, task] of runnableTasks.entries()) {
-          try {
-            const result = await apiRequest<RunNowResponse>(`/api/scheduled-tasks/${task.id}/run-now`, { method: "POST" });
-            if (sentStatus(result.taskRun?.telegramStatus)) sent += 1;
-            if (result.taskRun?.status === "failed" || result.taskRun?.telegramStatus?.includes("failed")) failed += 1;
-          } catch {
-            failed += 1;
-          }
-          if (taskIndex < runnableTasks.length - 1) await delay(TASK_DELAY_MS);
-        }
-
-        if (index < resolvedBatches.length - 1) await delay(BATCH_DELAY_MS);
-      }
-
-      setMessage(isTh ? `รันครบ 2 ปุ่มแล้ว: ส่ง ${sent}/${expected}, ผิดพลาด ${failed}` : `Both buttons complete: sent ${sent}/${expected}, failed ${failed}`);
+      setLastResults(result.results ?? []);
+      setMessage(
+        isTh
+          ? `${batchName} เสร็จแล้ว: ส่ง ${result.summary.sentCount}/${result.summary.requestedCount}, ผิดพลาด ${result.summary.failedCount}, สร้างใหม่ ${result.summary.createdCount}`
+          : `${batchName} complete: sent ${result.summary.sentCount}/${result.summary.requestedCount}, failed ${result.summary.failedCount}, created ${result.summary.createdCount}`,
+      );
       await loadTasks();
     } catch (error) {
       setMessage(toErrorMessage(error));
@@ -330,28 +146,29 @@ export function RunBatchControls() {
             <h2 className="mt-3 text-2xl font-black text-white">{t("batch_title")}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("batch_desc")}</p>
           </div>
-          <Button disabled={Boolean(loading)} onClick={() => void runAllBatches()} type="button">
+          <Button disabled={Boolean(loading)} onClick={() => void runBatch("all")} type="button">
             {loading === "all" ? t("batch_running") : `🚀 ${t("batch_run_all")}`}
           </Button>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">
-          {resolvedBatches.map((batch, index) => {
-            const foundCount = batch.found.filter((item) => item.task).length;
-            const missingCount = batch.seeds.length - foundCount;
+          {resolvedBatches.map((batch) => {
+            const missingCount = batch.seeds.length - batch.foundCount;
             const batchTitle = isTh ? batch.titleTh : batch.titleEn;
             return (
-              <div key={batch.titleEn} className="rounded-3xl border border-white/10 bg-slate-950/40 p-4 shadow-2xl shadow-black/20">
+              <div key={batch.id} className="rounded-3xl border border-white/10 bg-slate-950/40 p-4 shadow-2xl shadow-black/20">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-200">{batchTitle}</p>
                     <h3 className="mt-1 text-lg font-black text-white">{isTh ? batch.subtitleTh : batch.subtitleEn}</h3>
                     <p className="mt-1 text-xs text-slate-400">
-                      {isTh ? `พร้อม ${foundCount}/${batch.seeds.length} หัวข้อ${missingCount ? ` · ขาด ${missingCount} ระบบจะเติมให้ตอนกดรัน` : ""}` : `Ready ${foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}
+                      {isTh
+                        ? `พร้อม ${batch.foundCount}/${batch.seeds.length} หัวข้อ${missingCount ? ` · ขาด ${missingCount} ระบบจะเติมให้ตอนกดรัน` : ""}`
+                        : `Ready ${batch.foundCount}/${batch.seeds.length} topic(s)${missingCount ? ` · missing ${missingCount}, will create before running` : ""}`}
                     </p>
                   </div>
-                  <Button disabled={Boolean(loading)} onClick={() => void runBatch(index)} type="button" variant="secondary">
-                    {loading === `batch-${index}` ? t("batch_running") : `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`}
+                  <Button disabled={Boolean(loading)} onClick={() => void runBatch(batch.id)} type="button" variant="secondary">
+                    {loading === batch.id ? t("batch_running") : `▶ ${isTh ? "รัน" : "Run "}${batchTitle}`}
                   </Button>
                 </div>
 
@@ -365,8 +182,19 @@ export function RunBatchControls() {
           })}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
-          {message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/45 p-4 text-sm text-slate-300">
+          <p>{message} · {isTh ? `มี task ในระบบตอนนี้ ${readyCount}/7` : `Current tasks in system ${readyCount}/7`}</p>
+          {lastResults.length > 0 && (
+            <div className="grid gap-2 md:grid-cols-2">
+              {lastResults.map((item) => (
+                <div key={`${item.taskName}-${item.telegramStatus}`} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs leading-5">
+                  <span className="font-bold text-white">{item.taskName}</span>
+                  <span className="text-slate-400"> · {item.status} · Telegram: {item.telegramStatus}</span>
+                  {item.error ? <p className="text-rose-200">{item.error}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Card>

@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 
-const taskTypes: ScheduledTaskType[] = ["Daily Brief", "Email Monitor", "Sale Monitor", "World Cup Recap", "Weekend Long Read", "Concert Alerts", "Weekend Ideas", "Custom"];
+const taskTypes: ScheduledTaskType[] = ["Daily Brief", "Email Monitor", "Sale Monitor", "World Cup Recap", "Concert Alerts", "US Stock News", "Lifestyle Ideas", "Custom"];
 const scheduleTypes: ScheduleType[] = ["One Time", "Hourly", "Daily", "Weekly", "Monthly", "Custom Cron"];
-const dataSources = ["News", "Gmail", "Product Prices", "Football API", "Weather API", "Concert API"];
+const dataSources = ["News", "NewsData.io", "Gmail", "Global Innovation Product Radar", "US Stock News", "Football API", "Weather API", "Concert API", "Lifestyle"];
 const gptActions = ["Summarize", "Analyze Priority", "Generate Caption", "Generate Image Prompt", "Recommend Action"];
 const outputChannels = ["Save to Web Dashboard", "Save to Notifications", "Send Telegram"];
 
@@ -37,18 +37,18 @@ const initialState: FormState = {
   cronExpression: "0 8 * * *",
   time: "08:00",
   timezone: "Asia/Bangkok",
-  dataSources: ["News", "Weather API"],
+  dataSources: ["NewsData.io", "Weather API"],
   gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
-  outputChannels: ["Save to Web Dashboard", "Save to Notifications"],
+  outputChannels: ["Save to Web Dashboard", "Save to Notifications", "Send Telegram"],
   minPriorityScore: 70,
   isActive: true,
 };
 
 const copy = {
   th: {
-    badge: "เฟส 17 API Create",
+    badge: "API Create",
     title: "สร้างงานอัตโนมัติ",
-    desc: "ฟอร์มนี้ส่งข้อมูลไปที่ /api/scheduled-tasks แล้ว ไม่ใช่ mock state เฉพาะหน้า frontend",
+    desc: "สร้าง Scheduled Task สำหรับ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap และ Lifestyle Ideas",
     saved: "บันทึกผ่าน API แล้ว",
     taskId: "Task ID",
     back: "กลับไปหน้างาน",
@@ -76,9 +76,9 @@ const copy = {
     oneTimeAt: "รันครั้งเดียวเวลา",
   },
   en: {
-    badge: "Phase 17 API Create",
+    badge: "API Create",
     title: "Create Scheduled Task",
-    desc: "This form posts to /api/scheduled-tasks and is no longer frontend-only mock state.",
+    desc: "Create Scheduled Tasks for Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, and Lifestyle Ideas.",
     saved: "Saved via API",
     taskId: "Task ID",
     back: "Back to Tasks",

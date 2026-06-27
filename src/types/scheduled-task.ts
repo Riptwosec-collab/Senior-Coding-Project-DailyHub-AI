@@ -5,10 +5,10 @@ export type ScheduledTaskType =
   | "Email Monitor"
   | "Sale Monitor"
   | "World Cup Recap"
-  | "Weekend Long Read"
   | "Concert Alerts"
   | "US Stock News"
   | "Weekend Ideas"
+  | "Lifestyle Ideas"
   | "Custom";
 
 export type ScheduleType = "One Time" | "Hourly" | "Daily" | "Weekly" | "Monthly" | "Custom Cron";

@@ -23,8 +23,7 @@ const TOPIC_META = {
   football: { emoji: "⚽", label: "Football Recap", shortLabel: "Football" },
   concert: { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" },
   weather: { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" },
-  weekendIdeas: { emoji: "🧭", label: "Weekend Ideas", shortLabel: "Ideas" },
-  weekendLongRead: { emoji: "📚", label: "Weekend Long Read", shortLabel: "Long Read" },
+  lifestyle: { emoji: "💡", label: "Lifestyle Ideas", shortLabel: "Lifestyle" },
   dailyBrief: { emoji: "📰", label: "Daily Brief / News", shortLabel: "News" },
   test: { emoji: "🧪", label: "Telegram Test", shortLabel: "Test" },
 } satisfies Record<string, TelegramTopicMeta>;
@@ -68,11 +67,8 @@ function normalizeKey(value: string) {
 function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
   const text = normalizeKey(values.filter(Boolean).join(" "));
 
-  // Match task-level categories before source-level terms. This prevents a Daily Brief
-  // that contains Weather API from being labeled as only Weather.
   if (/daily brief|morning daily|brief|news|headline|ข่าว|สรุป/.test(text)) return TOPIC_META.dailyBrief;
-  if (/weekend long read|long read|article|reading|บทความ|อ่านยาว/.test(text)) return TOPIC_META.weekendLongRead;
-  if (/weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/.test(text)) return TOPIC_META.weekendIdeas;
+  if (/lifestyle|weekend idea|weekend ideas|idea|trip|travel|restaurant|cafe|เที่ยว|ไอเดีย|ร้านอาหาร|คาเฟ่/.test(text)) return TOPIC_META.lifestyle;
   if (/product radar|global product|product trend|new product|interesting product|gadget|สินค้าใหม่|สินค้าน่าสนใจ|สินค้าออกใหม่|ทั่วโลก/.test(text)) return TOPIC_META.productRadar;
   if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) return TOPIC_META.productRadar;
   if (/email|gmail|mail|inbox|อีเมล/.test(text)) return TOPIC_META.email;

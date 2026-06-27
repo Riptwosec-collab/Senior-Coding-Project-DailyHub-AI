@@ -5,9 +5,10 @@ export const taskTypes: ScheduledTaskType[] = [
   "Email Monitor",
   "Sale Monitor",
   "World Cup Recap",
-  "Weekend Long Read",
   "Concert Alerts",
+  "US Stock News",
   "Weekend Ideas",
+  "Lifestyle Ideas",
   "Custom",
 ];
 
@@ -24,11 +25,15 @@ export const timezones = [
 
 export const dataSourceOptions = [
   "News",
+  "NewsData.io",
   "Gmail",
   "Product Prices",
   "Football API",
   "Weather API",
   "Concert API",
+  "Global Innovation Product Radar",
+  "US Stock News",
+  "Lifestyle",
 ];
 
 export const gptActionOptions = [
@@ -66,9 +71,9 @@ export const initialCreateTaskFormValues: CreateTaskFormValues = {
   time: "08:00",
   date: new Date().toISOString().slice(0, 10),
   timezone: "Asia/Bangkok",
-  dataSources: ["News", "Weather API"],
+  dataSources: ["NewsData.io", "Weather API"],
   gptActions: ["Summarize", "Analyze Priority", "Recommend Action"],
-  outputChannels: ["Save to Web Dashboard", "Save to Notifications"],
+  outputChannels: ["Save to Web Dashboard", "Save to Notifications", "Send Telegram"],
   minPriorityScore: 70,
   isActive: true,
 };

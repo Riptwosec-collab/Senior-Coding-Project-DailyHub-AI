@@ -7,8 +7,9 @@ import {
   normalizeStringArray,
   readJsonBody,
   successResponse,
+  getMockDb,
 } from "@/lib/mock-db";
-import { requireCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireCurrentUser } from "@/lib/auth";
 import { createScheduledTask, listScheduledTasks } from "@/lib/repositories/scheduled-tasks.repository";
 import type { ScheduledTask } from "@/types/scheduled-task";
 
@@ -35,17 +36,28 @@ function normalizeTaskForDisplay(task: ScheduledTask): ScheduledTask {
 
 export async function GET(request: Request) {
   try {
-    const user = await requireCurrentUser();
-    const tasks = await listScheduledTasks({
-      userId: user.id,
+    const user = await getCurrentUser();
+    const query = {
       search: normalizeString(getSearchParam(request, "search")),
       type: normalizeString(getSearchParam(request, "type")),
       status: normalizeString(getSearchParam(request, "status")),
       isActive: getSearchParam(request, "is_active") === null ? undefined : normalizeBoolean(getSearchParam(request, "is_active")),
+    };
+
+    const tasks = user ? await listScheduledTasks({
+      userId: user.id,
+      ...query,
+    }) : getMockDb().scheduledTasks.filter((task) => {
+      const search = query.search.toLowerCase();
+      const matchesSearch = !search || [task.name, task.type, task.status, task.dataSources.join(" ")].join(" ").toLowerCase().includes(search);
+      const matchesType = !query.type || query.type === "All" || task.type === query.type;
+      const matchesStatus = !query.status || query.status === "All" || task.status === query.status;
+      const matchesActive = typeof query.isActive !== "boolean" || task.isActive === query.isActive;
+      return matchesSearch && matchesType && matchesStatus && matchesActive;
     });
 
     const normalizedTasks = tasks.map(normalizeTaskForDisplay);
-    return Response.json({ success: true, data: normalizedTasks, meta: { total: normalizedTasks.length, user: user.isMock ? "mock" : "supabase" } });
+    return Response.json({ success: true, data: normalizedTasks, meta: { total: normalizedTasks.length, user: user ? (user.isMock ? "mock" : "supabase") : "public-demo" } });
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "Failed to list tasks", 401, "BAD_REQUEST");
   }

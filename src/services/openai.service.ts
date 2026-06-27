@@ -58,6 +58,22 @@ function getPromptTaskIdentity(task: ScheduledTask) {
     };
   }
 
+  if (task.type === "Public Alerts") {
+    return {
+      name: task.name,
+      type: task.type,
+      instruction: "Summarize only public notices, government alerts, public-service changes, and BTS/MRT disruption updates. Emphasize source checking and practical next actions.",
+    };
+  }
+
+  if (task.type === "Travel Deals") {
+    return {
+      name: task.name,
+      type: task.type,
+      instruction: "Summarize flight deals, hotel room-rate deals, resort offers, new routes from Thailand, and Thailand travel promotions. Do not mix this with generic shopping deals. Always mention booking terms to check.",
+    };
+  }
+
   return {
     name: task.name,
     type: task.type,
@@ -106,6 +122,8 @@ Rules:
 - If content creation is requested, include caption and image_prompt.
 - For Global Product Radar, write in Thai, organize the result around why each product is interesting, who it is for, what to check before buying, and one content angle.
 - For Football / World Cup Recap, include actual team names and scores/status from raw input. Never use placeholder names like Team A or Team B.
+- For Public Alerts, write in Thai, focus on official notices, BTS/MRT disruptions, public-service impact, and what to check before traveling.
+- For Travel Deals, write in Thai, focus on flights departing Thailand, domestic flights, hotels, room rates, travel packages, and terms/taxes/fees to verify before booking.
 - Return valid JSON only. Do not wrap the JSON in markdown.
 
 Raw Input:
@@ -156,7 +174,7 @@ function footballLabels(rawInput?: Record<string, unknown>) {
 
 export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<string, unknown>): GptOutput {
   const sourceCount = Array.isArray(rawInput?.sources) ? rawInput.sources.length : task.dataSources.length;
-  const priority = task.type === "Email Monitor" ? 88 : task.type === "Sale Monitor" ? 90 : task.type === "World Cup Recap" ? 72 : 78;
+  const priority = task.type === "Email Monitor" ? 88 : task.type === "Sale Monitor" ? 90 : task.type === "World Cup Recap" ? 72 : task.type === "Public Alerts" ? 86 : task.type === "Travel Deals" ? 78 : 78;
 
   if (task.type === "Sale Monitor") {
     return {
@@ -178,6 +196,28 @@ export function generateMockGptOutput(task: ScheduledTask, rawInput?: Record<str
       recommended_action: "เปิด Data Library เพื่อดูรายละเอียดแต่ละคู่ เช่น ทีม, สกอร์/สถานะ, กลุ่ม, เวลาแข่ง และประเด็นสำคัญ",
       caption: `⚽ Football Recap: ${labels.slice(0, 3).join(" | ")}`,
       image_prompt: "9:16 football recap dashboard with real team names, scoreboard cards, stadium lights, modern sports UI, dark glassmorphism",
+    };
+  }
+
+  if (task.type === "Public Alerts") {
+    return {
+      title: "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT",
+      summary: `สรุปประกาศสำคัญและสถานะบริการสาธารณะจาก ${sourceCount} แหล่งข้อมูล โดยเน้นประกาศหน่วยงานรัฐและ BTS/MRT ที่อาจกระทบการเดินทาง`,
+      priority_score: priority,
+      recommended_action: "ตรวจประกาศทางการก่อนออกเดินทาง และเตรียมเส้นทางสำรองหากมี BTS/MRT ขัดข้องหรือปิดพื้นที่",
+      caption: "📢 ประกาศสำคัญและสถานะ BTS/MRT ที่ควรรู้ก่อนออกเดินทาง",
+      image_prompt: null,
+    };
+  }
+
+  if (task.type === "Travel Deals") {
+    return {
+      title: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม",
+      summary: `คัดโปรเดินทางจาก ${sourceCount} แหล่งข้อมูล ครอบคลุมตั๋วเครื่องบินในไทย ต่างประเทศที่เริ่มบินจากไทย ราคาห้องพัก โรงแรม รีสอร์ต และแพ็กเกจเที่ยวไทย`,
+      priority_score: priority,
+      recommended_action: "ตรวจวันเดินทาง ภาษี ค่าธรรมเนียม น้ำหนักกระเป๋า เงื่อนไขยกเลิก และวันหมดโปรจากผู้ให้บริการก่อนจอง",
+      caption: "✈️ โปรบินจากไทย โรงแรม และแพ็กเกจเที่ยวไทยที่ควรเช็กก่อนหมดโปร",
+      image_prompt: null,
     };
   }
 

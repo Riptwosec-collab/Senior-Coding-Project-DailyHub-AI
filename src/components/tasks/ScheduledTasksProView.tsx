@@ -17,8 +17,8 @@ const TYPE_EMOJI: Record<string, string> = {
   "World Cup Recap": "⚽",
   "Concert Alerts": "🎤",
   "US Stock News": "📈",
-  "Weekend Ideas": "📈",
-  "Lifestyle Ideas": "💡",
+  "Public Alerts": "📢",
+  "Travel Deals": "✈️",
   Custom: "⚙️",
 };
 
@@ -30,7 +30,7 @@ const FILTER_TABS = {
 const copy = {
   th: {
     title: "งานอัตโนมัติ",
-    desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap และ Lifestyle Ideas",
+    desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ และโปรเดินทาง",
     createTask: "สร้างงาน",
     refresh: "รีเฟรช",
     testTelegram: "ทดสอบ Telegram",
@@ -58,7 +58,7 @@ const copy = {
   },
   en: {
     title: "Scheduled Tasks",
-    desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, and Lifestyle Ideas.",
+    desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, and travel deals.",
     createTask: "Create Task",
     refresh: "Refresh",
     testTelegram: "Test Telegram",
@@ -88,7 +88,7 @@ const copy = {
 
 function isLegacyHiddenTask(task: ScheduledTask) {
   const haystack = [task.name, task.type, task.dataSources.join(" ")].join(" ").toLowerCase();
-  return haystack.includes("long read") || haystack.includes("อ่านยาว");
+  return haystack.includes("long read") || haystack.includes("อ่านยาว") || /weekend ideas|lifestyle ideas|ไอเดียวันหยุด|ไลฟ์สไตล์/.test(haystack);
 }
 
 export function ScheduledTasksProView() {

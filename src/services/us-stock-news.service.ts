@@ -120,7 +120,9 @@ function mockStockNews(): UsStockNewsItem[] {
   ];
 }
 
-export async function fetchWeekendIdeasInput(_task: ScheduledTask): Promise<DataSourceResult> {
+export async function fetchUsStockNewsInput(_task: ScheduledTask): Promise<DataSourceResult> {
+  void _task;
+
   const items = mockStockNews();
 
   return {

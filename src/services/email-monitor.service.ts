@@ -61,7 +61,7 @@ export async function fetchEmailUpdates(_task: ScheduledTask): Promise<DataSourc
       category: "Newsletter / Learning",
       priorityHint: "low",
       summary: "บทความอ่านต่อเกี่ยวกับ AI infrastructure, data center และ network capacity",
-      suggestedAction: "เก็บไว้ใน Data Library / Weekend Long Read",
+      suggestedAction: "เก็บไว้ใน Data Library / Long Read",
       receivedAt: today,
       status: "unread",
     },

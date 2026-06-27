@@ -7,8 +7,8 @@ export const taskTypes: ScheduledTaskType[] = [
   "World Cup Recap",
   "Concert Alerts",
   "US Stock News",
-  "Weekend Ideas",
-  "Lifestyle Ideas",
+  "Public Alerts",
+  "Travel Deals",
   "Custom",
 ];
 
@@ -33,7 +33,11 @@ export const dataSourceOptions = [
   "Concert API",
   "Global Innovation Product Radar",
   "US Stock News",
-  "Lifestyle",
+  "Public Notices",
+  "BTS/MRT Status",
+  "Flight Deals",
+  "Hotel Deals",
+  "Travel Promotions",
 ];
 
 export const gptActionOptions = [

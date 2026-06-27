@@ -277,7 +277,7 @@ function buildMockNewsItems(): ThaiNewsArticle[] {
       source: "Nimbus Research Desk",
       title: "บทความอ่านยาวควรสรุปเป็น 3 ระดับ: สั้น กลาง เต็ม",
       description: "คนอ่านแต่ละคนมีเวลาต่างกัน Data Library ควรมีสรุปสั้น ประเด็นสำคัญ และเนื้อหาเต็มในหน้าเดียว",
-      fullArticle: "การออกแบบ Weekend Long Read ควรคิดเหมือนระบบอ่านบทความอัจฉริยะ ไม่ใช่แค่เก็บลิงก์ ควรมีระดับการอ่าน 3 แบบ ได้แก่ 1) สรุป 3 บรรทัดสำหรับ Telegram 2) Key points สำหรับอ่านเร็วบน Dashboard และ 3) Full note สำหรับ Data Library วิธีนี้ทำให้คนอ่านเลือกได้ตามเวลาที่มี และยังทำให้ข้อมูลเหมาะกับการทำโพสต์หรือ presentation ต่อ",
+      fullArticle: "การออกแบบ Long Read ควรคิดเหมือนระบบอ่านบทความอัจฉริยะ ไม่ใช่แค่เก็บลิงก์ ควรมีระดับการอ่าน 3 แบบ ได้แก่ 1) สรุป 3 บรรทัดสำหรับ Telegram 2) Key points สำหรับอ่านเร็วบน Dashboard และ 3) Full note สำหรับ Data Library วิธีนี้ทำให้คนอ่านเลือกได้ตามเวลาที่มี และยังทำให้ข้อมูลเหมาะกับการทำโพสต์หรือ presentation ต่อ",
       keyPoints: ["Telegram = สั้น", "Dashboard = สรุปกลาง", "Data Library = เต็ม"],
       whyItMatters: "ทำให้ข้อมูลเยอะขึ้นแต่ไม่รก Telegram",
       readTime: "3 นาที",

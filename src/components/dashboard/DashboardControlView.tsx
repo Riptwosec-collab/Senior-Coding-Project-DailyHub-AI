@@ -17,7 +17,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type BadgeTone = "blue" | "green" | "purple" | "red" | "gray";
-type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "ideas" | "longread" | "failed";
+type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "publicAlerts" | "travelDeals" | "longread" | "failed";
 type Localized = Record<Lang, string>;
 
 type Topic = {
@@ -31,11 +31,12 @@ type Topic = {
 const TOPICS: Topic[] = [
   { key: "daily", emoji: "📰", label: { th: "สรุปประจำวัน / ข่าว", en: "Daily Brief / News" }, tone: "blue", pattern: /daily brief|morning|brief|news|headline|ข่าว|สรุปข่าว/i },
   { key: "email", emoji: "📧", label: { th: "ตรวจอีเมลสำคัญ", en: "Email Monitor" }, tone: "blue", pattern: /email|gmail|mail|inbox|อีเมล/i },
+  { key: "publicAlerts", emoji: "📢", label: { th: "ประกาศรัฐ / BTS-MRT", en: "Public Alerts / BTS-MRT" }, tone: "red", pattern: /public alert|government|notice|bts|mrt|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง/i },
+  { key: "travelDeals", emoji: "✈️", label: { th: "โปรเดินทาง / โรงแรม", en: "Travel Deals / Hotels" }, tone: "green", pattern: /travel deal|flight|airfare|airline|hotel|resort|room rate|ตั๋วเครื่องบิน|โปรบิน|โรงแรม|ห้องพัก|รีสอร์ต|โปรเดินทาง|โปรท่องเที่ยว/i },
   { key: "product", emoji: "🌍", label: { th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar" }, tone: "green", pattern: /sale|deal|price|shop|shopee|product|radar|gadget|สินค้า|โปร/i },
   { key: "concert", emoji: "🎤", label: { th: "แจ้งเตือนคอนเสิร์ต", en: "Concert Alerts" }, tone: "purple", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน/i },
   { key: "football", emoji: "⚽", label: { th: "สรุปฟุตบอล", en: "Football Recap" }, tone: "green", pattern: /football|soccer|world cup|match|score|บอล|ฟุตบอล/i },
-  { key: "longread", emoji: "📚", label: { th: "บทความอ่านยาววันหยุด", en: "Weekend Long Read" }, tone: "purple", pattern: /weekend long read|long read|article|reading|บทความ|อ่านยาว/i },
-  { key: "ideas", emoji: "🧭", label: { th: "ไอเดียวันหยุด", en: "Weekend Ideas" }, tone: "purple", pattern: /weekend idea|weekend ideas|idea|trip|travel|เที่ยว|ไอเดีย/i },
+  { key: "longread", emoji: "📚", label: { th: "บทความอ่านยาว", en: "Long Read" }, tone: "purple", pattern: /long read|article|reading|บทความ|อ่านยาว/i },
 ];
 
 const DEFAULT_TOPIC: Topic = {
@@ -149,8 +150,9 @@ const TYPE_LABELS: Record<string, Localized> = {
   "Sale Monitor": { th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar" },
   "Concert Alerts": { th: "แจ้งเตือนคอนเสิร์ต", en: "Concert Alerts" },
   "World Cup Recap": { th: "สรุปฟุตบอล", en: "Football Recap" },
-  "Weekend Ideas": { th: "ไอเดียวันหยุด", en: "Weekend Ideas" },
-  "Weekend Long Read": { th: "บทความอ่านยาววันหยุด", en: "Weekend Long Read" },
+  "Public Alerts": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ", en: "Public Alerts" },
+  "Travel Deals": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals" },
+  "Weekend Long Read": { th: "บทความอ่านยาว", en: "Long Read" },
   Custom: { th: "กำหนดเอง", en: "Custom" },
 };
 
@@ -294,10 +296,14 @@ function highlight(item: unknown, lang: Lang) {
   const matchHighlight = asString(record.highlight);
   if (match || score || matchHighlight) return `⚽ ${match || "Match"}${score ? ` (${score})` : ""}${matchHighlight ? ` — ${matchHighlight}` : ""}`;
 
-  const idea = asString(record.idea);
-  const location = asString(record.location);
-  const bestTime = asString(record.bestTime);
-  if (idea || location || bestTime) return `🧭 ${idea || location || "Weekend idea"}${location ? ` • ${location}` : ""}${bestTime ? ` • ${bestTime}` : ""}`;
+  const deal = asString(record.deal);
+  const destination = asString(record.destination);
+  const origin = asString(record.origin);
+  if (deal || destination || origin) return `✈️ ${deal || "Travel deal"}${origin ? ` • ${origin}` : ""}${destination ? ` → ${destination}` : ""}`;
+
+  const alertTitle = asString(record.agency) || asString(record.area);
+  const severity = asString(record.severity);
+  if (alertTitle || severity) return `📢 ${alertTitle || "Public alert"}${severity ? ` • ${severity}` : ""}`;
 
   const subject = asString(record.subject);
   const from = asString(record.from);

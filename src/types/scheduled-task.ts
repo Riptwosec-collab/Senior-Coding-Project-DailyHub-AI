@@ -7,8 +7,8 @@ export type ScheduledTaskType =
   | "World Cup Recap"
   | "Concert Alerts"
   | "US Stock News"
-  | "Weekend Ideas"
-  | "Lifestyle Ideas"
+  | "Public Alerts"
+  | "Travel Deals"
   | "Custom";
 
 export type ScheduleType = "One Time" | "Hourly" | "Daily" | "Weekly" | "Monthly" | "Custom Cron";

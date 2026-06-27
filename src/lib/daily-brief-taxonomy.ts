@@ -158,19 +158,30 @@ export const dailyBriefTopicDetails: Record<DailyBriefCategoryKey, DailyBriefTop
     subtopicsTh: ["Shopee", "Lazada", "Gadget", "Software", "Domain / Hosting", "โปรที่น่าสนใจ"],
     subtopicsEn: ["Shopee", "Lazada", "Gadgets", "Software", "Domain / Hosting", "Interesting promotions"],
   },
-  lifestyle: {
-    key: "lifestyle",
-    icon: "💡",
-    labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์",
-    labelEn: "Weekend Ideas / Lifestyle",
-    descriptionTh: "ร้านอาหาร ที่เที่ยว คาเฟ่ บุฟเฟ่ต์ และกิจกรรมพักผ่อน",
-    descriptionEn: "Restaurants, travel, cafes, buffets, and nearby activities.",
-    subtopicsTh: ["ร้านอาหาร", "ที่เที่ยว", "กิจกรรมวันหยุด", "ไอเดียพักผ่อน", "คาเฟ่", "บุฟเฟ่ต์", "อีเวนต์ใกล้ตัว"],
-    subtopicsEn: ["Restaurants", "Places to visit", "Weekend activities", "Rest ideas", "Cafes", "Buffets", "Nearby events"],
+  publicAlerts: {
+    key: "publicAlerts",
+    icon: "📢",
+    labelTh: "ประกาศสำคัญ / แจ้งเตือนรัฐ",
+    labelEn: "Public Alerts / Government Notices",
+    descriptionTh: "ประกาศสำคัญจากหน่วยงานรัฐและระบบขนส่งที่อาจกระทบชีวิตประจำวัน",
+    descriptionEn: "Important government and transit notices that may affect daily plans.",
+    subtopicsTh: ["ประกาศสำคัญ", "แจ้งเตือนรัฐ", "BTS/MRT ขัดข้อง", "บริการสาธารณะ", "แจ้งปิดถนน/ปิดพื้นที่", "เหตุฉุกเฉินที่ควรรู้"],
+    subtopicsEn: ["Important notices", "Government alerts", "BTS/MRT disruptions", "Public services", "Road/area closures", "Public safety alerts"],
+  },
+  travelDeals: {
+    key: "travelDeals",
+    icon: "✈️",
+    labelTh: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม",
+    labelEn: "Travel Deals / Flights / Hotels",
+    descriptionTh: "ข่าวโปรตั๋วเครื่องบิน โรงแรม และท่องเที่ยวที่เริ่มต้นจากไทยหรือเกี่ยวกับเที่ยวไทย",
+    descriptionEn: "Flight, hotel, and travel promotions from Thailand or related to Thailand trips.",
+    subtopicsTh: ["โปรตั๋วเครื่องบินในไทย", "โปรตั๋วต่างประเทศที่เริ่มบินจากไทย", "เส้นทางบินใหม่จากไทย", "ราคาห้องพัก", "โปรโรงแรม/รีสอร์ต", "แพ็กเกจเที่ยวไทย", "โปรท่องเที่ยวตามฤดูกาล"],
+    subtopicsEn: ["Domestic flight deals", "International fares departing Thailand", "New routes from Thailand", "Room rates", "Hotel/resort promos", "Thailand travel packages", "Seasonal travel deals"],
+    noteTh: "เป็นข้อมูลข่าวและโปรโมชัน ควรตรวจเงื่อนไข วันเดินทาง ภาษี และค่าธรรมเนียมจากผู้ให้บริการก่อนจอง",
+    noteEn: "News and promotion context only. Check dates, taxes, fees, and terms with the provider before booking.",
   },
 };
 
 export function getDailyBriefTopicDetail(key: DailyBriefCategoryKey) {
   return dailyBriefTopicDetails[key] ?? dailyBriefTopicDetails.all;
 }
-

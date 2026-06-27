@@ -4,9 +4,11 @@ import { fetchConcertUpdates } from "./concert.service";
 import { fetchEmailUpdates } from "./email-monitor.service";
 import { fetchFootballUpdates } from "./football.service";
 import { fetchNewsUpdates } from "./news.service";
+import { fetchPublicAlertsInput } from "./public-alerts.service";
 import { fetchSaleUpdates } from "./sale-monitor.service";
+import { fetchTravelDealsInput } from "./travel-deals.service";
+import { fetchUsStockNewsInput } from "./us-stock-news.service";
 import { fetchWeatherUpdates } from "./weather.service";
-import { fetchWeekendIdeasInput } from "./weekend-ideas.service";
 
 export interface StandardDataSourcePayload {
   title: string;
@@ -64,23 +66,22 @@ function sourceHandler(source: string, task: ScheduledTask) {
   if (source === "Football API" || source === "Football News Hub") return () => fetchFootballUpdates(task);
   if (source === "Weather API" || source === "Weather") return () => fetchWeatherUpdates(task);
   if (source === "Concert API" || source === "Concert API Thailand Only") return () => fetchConcertUpdates(task);
-  if (["Weekend Ideas", "Lifestyle", "Restaurants", "Cafe", "US Stock News"].includes(source)) return () => fetchWeekendIdeasInput(task);
+  if (["Public Notices", "BTS/MRT Status", "Government Alerts", "Public Alerts"].includes(source)) return () => fetchPublicAlertsInput(task);
+  if (["Flight Deals", "Hotel Deals", "Travel Promotions", "Travel Deals"].includes(source)) return () => fetchTravelDealsInput(task);
+  if (source === "US Stock News") return () => fetchUsStockNewsInput(task);
   return () => fetchNewsUpdates(task);
 }
 
 function isUsStockTask(task: ScheduledTask) {
-  return task.type === "US Stock News" || task.type === "Weekend Ideas" || /weekend ideas|us stock news/i.test(task.name);
-}
-
-function isLifestyleTask(task: ScheduledTask) {
-  return task.type === "Lifestyle Ideas" || /lifestyle ideas/i.test(task.name);
+  return task.type === "US Stock News" || /us stock news/i.test(task.name);
 }
 
 function getEffectiveSources(task: ScheduledTask) {
   const sources = task.dataSources.length > 0 ? [...task.dataSources] : ["News"];
 
   if (isUsStockTask(task) && !sources.includes("US Stock News")) sources.unshift("US Stock News");
-  if (isLifestyleTask(task) && !sources.includes("Lifestyle")) sources.unshift("Lifestyle");
+  if (task.type === "Public Alerts" && !sources.includes("Public Notices")) sources.unshift("Public Notices");
+  if (task.type === "Travel Deals" && !sources.includes("Travel Promotions")) sources.unshift("Travel Promotions");
   if (task.type === "World Cup Recap" && !sources.includes("Football News Hub")) sources.unshift("Football News Hub");
   if (task.type === "Sale Monitor" && !sources.includes("Global Innovation Product Radar")) sources.unshift("Global Innovation Product Radar");
   if (task.type === "Email Monitor" && !sources.includes("Gmail Daily Digest")) sources.unshift("Gmail Daily Digest");

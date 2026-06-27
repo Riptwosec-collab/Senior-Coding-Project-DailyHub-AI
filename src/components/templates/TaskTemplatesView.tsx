@@ -14,13 +14,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
 import type { CreateTaskFromTemplateResult, TaskTemplate } from "@/types/task-template";
 
-const categories = ["All", "Daily Brief", "Email Monitor", "Sale Monitor", "World Cup Recap", "Weekend Ideas", "Concert Alerts", "Custom"];
+const categories = ["All", "Daily Brief", "Email Monitor", "Sale Monitor", "World Cup Recap", "Concert Alerts", "Public Alerts", "Travel Deals", "Custom"];
 
 const copy = {
   th: {
     badge: "เฟส 27",
     title: "เทมเพลตงาน",
-    desc: "เลือก workflow สำเร็จรูปแล้วสร้าง Scheduled Task ได้ทันที เหมาะสำหรับ Daily Brief, Email Monitor, Sale Monitor และ Weekend Ideas",
+    desc: "เลือก workflow สำเร็จรูปแล้วสร้าง Scheduled Task ได้ทันที เหมาะสำหรับ Daily Brief, Email Monitor, Sale Monitor, ประกาศรัฐ และโปรเดินทาง",
     custom: "สร้างงานเอง",
     createdTitle: "สร้าง Task สำเร็จแล้ว",
     createdDesc: "เปิดหน้า Scheduled Tasks เพื่อกด Run Now หรือแก้ไขเวลารันได้",
@@ -47,7 +47,7 @@ const copy = {
   en: {
     badge: "Phase 27",
     title: "Task Templates",
-    desc: "Pick a ready-made workflow and create a Scheduled Task instantly for Daily Brief, Email Monitor, Sale Monitor, and Weekend Ideas.",
+    desc: "Pick a ready-made workflow and create a Scheduled Task instantly for Daily Brief, Email Monitor, Sale Monitor, public alerts, and travel deals.",
     custom: "Create Custom Task",
     createdTitle: "Task created",
     createdDesc: "Open Scheduled Tasks to run now or edit the schedule.",

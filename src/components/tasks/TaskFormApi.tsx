@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 
-const taskTypes: ScheduledTaskType[] = ["Daily Brief", "Email Monitor", "Sale Monitor", "World Cup Recap", "Concert Alerts", "US Stock News", "Lifestyle Ideas", "Custom"];
+const taskTypes: ScheduledTaskType[] = ["Daily Brief", "Email Monitor", "Sale Monitor", "World Cup Recap", "Concert Alerts", "US Stock News", "Public Alerts", "Travel Deals", "Custom"];
 const scheduleTypes: ScheduleType[] = ["One Time", "Hourly", "Daily", "Weekly", "Monthly", "Custom Cron"];
-const dataSources = ["News", "NewsData.io", "Gmail", "Global Innovation Product Radar", "US Stock News", "Football API", "Weather API", "Concert API", "Lifestyle"];
+const dataSources = ["News", "NewsData.io", "Gmail", "Global Innovation Product Radar", "US Stock News", "Football API", "Weather API", "Concert API", "Public Notices", "BTS/MRT Status", "Flight Deals", "Hotel Deals", "Travel Promotions"];
 const gptActions = ["Summarize", "Analyze Priority", "Generate Caption", "Generate Image Prompt", "Recommend Action"];
 const outputChannels = ["Save to Web Dashboard", "Save to Notifications", "Send Telegram"];
 
@@ -48,7 +48,7 @@ const copy = {
   th: {
     badge: "API Create",
     title: "สร้างงานอัตโนมัติ",
-    desc: "สร้าง Scheduled Task สำหรับ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap และ Lifestyle Ideas",
+    desc: "สร้าง Scheduled Task สำหรับ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ และโปรเดินทาง",
     saved: "บันทึกผ่าน API แล้ว",
     taskId: "Task ID",
     back: "กลับไปหน้างาน",
@@ -78,7 +78,7 @@ const copy = {
   en: {
     badge: "API Create",
     title: "Create Scheduled Task",
-    desc: "Create Scheduled Tasks for Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, and Lifestyle Ideas.",
+    desc: "Create Scheduled Tasks for Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, and travel deals.",
     saved: "Saved via API",
     taskId: "Task ID",
     back: "Back to Tasks",

@@ -46,11 +46,15 @@ const TOPICS: Array<{ key: TopicKey; icon: string; th: string; en: string }> = [
   { key: "email", icon: "📧", th: "อีเมลรายวัน", en: "Daily Email" },
   { key: "concert", icon: "🎤", th: "คอนเสิร์ตในไทย", en: "Thailand Concerts" },
   { key: "football", icon: "⚽", th: "ฟุตบอล", en: "Football" },
+  { key: "publicAlerts", icon: "📢", th: "ประกาศรัฐ / BTS-MRT", en: "Public Alerts / BTS-MRT" },
+  { key: "travelDeals", icon: "✈️", th: "โปรเดินทาง / โรงแรม", en: "Travel Deals / Hotels" },
   { key: "longread", icon: "📚", th: "บทความอ่านยาว", en: "Long Read" },
   { key: "failed", icon: "❌", th: "มีปัญหา", en: "Failed" },
 ];
 
 const TOPIC_PATTERNS: Array<{ topic: LibraryTopicKey; pattern: RegExp }> = [
+  { topic: "publicAlerts", pattern: /public alert|government|notice|bts|mrt|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง/i },
+  { topic: "travelDeals", pattern: /travel deal|flight|airfare|airline|hotel|resort|room rate|ตั๋วเครื่องบิน|โปรบิน|โรงแรม|ห้องพัก|รีสอร์ต|โปรเดินทาง|โปรท่องเที่ยว/i },
   { topic: "product", pattern: /product|innovation|radar|gadget|สินค้า|นวัตกรรม|เทค/i },
   { topic: "market", pattern: /stock|market|nasdaq|nyse|nvda|amd|msft|aapl|us stock|ตลาดสหรัฐ|หุ้น/i },
   { topic: "email", pattern: /email|gmail|mail|inbox|อีเมล/i },
@@ -60,7 +64,7 @@ const TOPIC_PATTERNS: Array<{ topic: LibraryTopicKey; pattern: RegExp }> = [
   { topic: "daily", pattern: /daily|brief|news|headline|ข่าว|สรุป/i },
 ];
 
-const LEGACY_INPUT_KEYS = ["news", "weather", "products", "gmail", "football", "concerts", "articles", "market"];
+const LEGACY_INPUT_KEYS = ["news", "weather", "products", "gmail", "football", "concerts", "articles", "market", "alerts", "travelDeals"];
 
 function asRecord(value: unknown): RichRecord | null {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as RichRecord) : null;
@@ -152,6 +156,8 @@ function enrichLegacyItem(key: string, item: unknown, index: number): RichRecord
   if (key === "football") return { title: text, teamNames: text, category: "Football", source: "Football News Hub", summary: "ข่าวฟุตบอลหรือผลการแข่งขันที่ควรจัดหมวดตามลีก/ทีม", whyItMatters: "ช่วยติดตามบอลไทย บอลโลก และลีกใหญ่แบบแยกเรื่อง", whatToWatchNext: "โปรแกรมถัดไป ผลล่าสุด นักเตะสำคัญ และสถานะการแข่งขัน", fullArticle: `${text} ควรถูกขยายเป็นข่าวฟุตบอลพร้อมชื่อทีม ลีก รายการ สถานะ และสิ่งที่ต้องติดตามต่อ`, priorityScore: 72 };
   if (key === "gmail") return { title: text, subject: text, category: "Daily Email", source: "Gmail Daily Digest", summary: "อีเมลในรอบวันที่ควรถูกสรุปเป็นหมวด พร้อม priority และสิ่งที่ต้องทำต่อ", suggestedAction: "จัดหมวดและตัดสินใจว่าอ่านทันที เก็บไว้ หรือ archive", fullArticle: `${text} เป็นอีเมลที่ระบบควรสรุป sender, subject, priority, status และ next action`, priorityScore: 80 };
   if (key === "concerts") return { title: text, eventName: text, category: "Thailand Concert Alerts", source: "Concert API Thailand Only", summary: "คอนเสิร์ตในไทยที่ควรเช็กวัน เวลา สถานที่ และสถานะบัตร", venue: "Thailand / Bangkok watchlist", ticketStatus: "Watchlist", fullArticle: `${text} ควรมีรายละเอียดศิลปิน สถานที่ วันแสดง ช่วงราคา การเดินทาง และ checklist ก่อนซื้อบัตร`, priorityScore: 78 };
+  if (key === "alerts") return { title: text, category: "Public Alerts", source: "Public Notices", summary: "ประกาศสำคัญหรือสถานะบริการสาธารณะที่ควรตรวจแหล่งทางการ", recommendedAction: "ตรวจประกาศทางการและเตรียมเส้นทางสำรอง", fullArticle: `${text} ควรถูกสรุปเป็นประกาศสำคัญ พร้อมพื้นที่ที่ได้รับผลกระทบ เวลา และสิ่งที่ต้องทำต่อ`, priorityScore: 86 };
+  if (key === "travelDeals") return { title: text, deal: text, category: "Travel Deals", source: "Travel Promotions", summary: "โปรเดินทาง ตั๋วเครื่องบิน โรงแรม หรือแพ็กเกจเที่ยวที่ควรตรวจเงื่อนไขก่อนจอง", whatToCheck: ["วันเดินทาง", "ภาษี/ค่าธรรมเนียม", "เงื่อนไขยกเลิก", "วันหมดโปร"], fullArticle: `${text} เป็นโปรเดินทางที่ควรอ่านรายละเอียด เช่น วันเดินทาง ภาษี ค่าธรรมเนียม น้ำหนักกระเป๋า และเงื่อนไขการจอง`, priorityScore: 78 };
   if (key === "news") return { title: text, category: "Global News", source: "News", summary: "ข่าวโลกที่ควรอ่านต่อพร้อมบริบทและผลกระทบ", whyItMatters: "ช่วยติดตามประเด็นที่น่าสนใจทั่วโลก", fullArticle: `${text} เป็นหัวข้อข่าวที่ควรขยายเป็นสรุปเต็ม พร้อมที่มา ประเด็นสำคัญ และสิ่งที่ต้องติดตามต่อ`, priorityScore: 82 };
 
   return { title: text, category: key, source: key, summary: text, fullArticle: text, priorityScore: 70 };
@@ -398,7 +404,7 @@ export function DataLibraryView({ initialRunId = "", initialArticleId = "" }: { 
 
       <Card className="p-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข่าว US Stock News สินค้าเทค คอนเสิร์ตไทย ฟุตบอล อีเมล..." : "Search news, US Stock News, tech products, Thailand concerts, football, email..."} value={query} />
+          <input className="min-h-12 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-sm text-white outline-none transition focus:border-cyan-300/50 focus:bg-slate-950/90" onChange={(event) => setQuery(event.target.value)} placeholder={isTh ? "ค้นหาข่าว ประกาศรัฐ BTS/MRT โปรบิน โรงแรม US Stock News คอนเสิร์ต..." : "Search news, public alerts, BTS/MRT, flight deals, hotels, US Stock News..."} value={query} />
           <div className="flex flex-wrap gap-2">
             {runId && <button className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white" onClick={() => setRunId("")} type="button">{isTh ? "ดูทุกเรื่อง" : "View all"}</button>}
             <button className="rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white" onClick={load} type="button">🔄 {isTh ? "รีเฟรช" : "Refresh"}</button>

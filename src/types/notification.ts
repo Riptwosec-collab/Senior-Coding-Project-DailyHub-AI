@@ -5,9 +5,9 @@ export type NotificationCategory =
   | "Football"
   | "Long Read"
   | "Concert"
-  | "Weekend"
+  | "Public Alerts"
+  | "Travel Deals"
   | "US Stock News"
-  | "Lifestyle"
   | "Custom";
 
 export interface WebNotification {

@@ -35,7 +35,8 @@ const CATEGORY_QUERY: Partial<Record<DailyBriefCategoryKey, string>> = {
   sports: "football soccer match fixture result",
   events: "concert event product launch Thailand",
   deals: "Shopee Lazada gadget software domain hosting promotion",
-  lifestyle: "restaurant cafe travel lifestyle Bangkok weekend ideas",
+  publicAlerts: "Thailand government announcement public alert BTS MRT disruption public service",
+  travelDeals: "Thailand flight deals airfare hotel room rate travel promotion resort package",
 };
 
 function detectCategory(article: NewsDataArticle): DailyBriefCategoryKey {
@@ -45,9 +46,10 @@ function detectCategory(article: NewsDataArticle): DailyBriefCategoryKey {
   if (/cisco|fortinet|palo alto|cloudflare|aws|azure|google cloud|vercel|github|network|outage|cloud/.test(text)) return "networkCloud";
   if (/stock|nasdaq|nyse|bitcoin|crypto|gold|dollar|semiconductor|nvda|amd|tsm|ตลาดหุ้น|หุ้น/.test(text)) return "market";
   if (/football|soccer|match|fixture|ผลบอล|ฟุตบอล|กีฬา/.test(text)) return "sports";
+  if (/government|public alert|official notice|announcement|bts|mrt|train disruption|transit disruption|road closure|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง|ปิดถนน|บริการสาธารณะ/.test(text)) return "publicAlerts";
+  if (/flight deal|airfare|airline|hotel|resort|room rate|travel promotion|travel deal|package tour|ตั๋วเครื่องบิน|โปรบิน|สายการบิน|โรงแรม|ห้องพัก|รีสอร์ต|แพ็กเกจเที่ยว|โปรท่องเที่ยว|เที่ยวไทย/.test(text)) return "travelDeals";
   if (/concert|ticket|artist|event|product launch|คอนเสิร์ต|อีเวนต์|สินค้าใหม่/.test(text)) return "events";
   if (/deal|discount|promotion|shopee|lazada|hosting|domain|โปร|ลดราคา/.test(text)) return "deals";
-  if (/restaurant|cafe|travel|buffet|ร้านอาหาร|คาเฟ่|ที่เที่ยว|บุฟเฟ่ต์/.test(text)) return "lifestyle";
   if (/thailand|thai|bangkok|รัฐบาล|เศรษฐกิจไทย|กรุงเทพ/.test(text)) return "thai";
   return "world";
 }

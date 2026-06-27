@@ -23,7 +23,8 @@ const TOPIC_META = {
   football: { emoji: "⚽", label: "Football Recap", shortLabel: "Football" },
   concert: { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" },
   weather: { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" },
-  lifestyle: { emoji: "💡", label: "Lifestyle Ideas", shortLabel: "Lifestyle" },
+  publicAlerts: { emoji: "📢", label: "ประกาศสำคัญ / แจ้งเตือนรัฐ", shortLabel: "Public Alerts" },
+  travelDeals: { emoji: "✈️", label: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", shortLabel: "Travel Deals" },
   dailyBrief: { emoji: "📰", label: "Daily Brief / News", shortLabel: "News" },
   test: { emoji: "🧪", label: "Telegram Test", shortLabel: "Test" },
 } satisfies Record<string, TelegramTopicMeta>;
@@ -68,7 +69,8 @@ function getTopicMetaFromText(...values: string[]): TelegramTopicMeta {
   const text = normalizeKey(values.filter(Boolean).join(" "));
 
   if (/daily brief|morning daily|brief|news|headline|ข่าว|สรุป/.test(text)) return TOPIC_META.dailyBrief;
-  if (/lifestyle|weekend idea|weekend ideas|idea|trip|travel|restaurant|cafe|เที่ยว|ไอเดีย|ร้านอาหาร|คาเฟ่/.test(text)) return TOPIC_META.lifestyle;
+  if (/public alert|government alert|government notice|public notice|bts|mrt|transit disruption|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง/.test(text)) return TOPIC_META.publicAlerts;
+  if (/travel deal|flight deal|airfare|airline|hotel|room rate|resort|travel promotion|ตั๋วเครื่องบิน|โปรบิน|โรงแรม|ห้องพัก|รีสอร์ต|โปรเดินทาง|โปรท่องเที่ยว/.test(text)) return TOPIC_META.travelDeals;
   if (/product radar|global product|product trend|new product|interesting product|gadget|สินค้าใหม่|สินค้าน่าสนใจ|สินค้าออกใหม่|ทั่วโลก/.test(text)) return TOPIC_META.productRadar;
   if (/sale|deal|discount|price|promo|shop|shopee|lazada|สินค้า|ลดราคา|โปร/.test(text)) return TOPIC_META.productRadar;
   if (/email|gmail|mail|inbox|อีเมล/.test(text)) return TOPIC_META.email;

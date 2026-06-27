@@ -30,13 +30,14 @@ const DEFAULT_TASKS: TaskSeed[] = [
   { key: "sports-football", label: "กีฬา / ฟุตบอล", name: "กีฬา / ฟุตบอล", type: "World Cup Recap", scheduleType: "Daily", cronExpression: "0 23 * * *", time: "23:00", dataSources: ["Football News Hub"], gptActions: ["Summarize", "Generate Caption", "Recommend Action"], minPriorityScore: 65 },
   { key: "events-products", label: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", name: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", type: "Concert Alerts", scheduleType: "Daily", cronExpression: "0 20 * * *", time: "20:00", dataSources: ["Concert API Thailand Only", "Global Innovation Product Radar"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 75 },
   { key: "deals-promos", label: "ดีล / โปรโมชัน", name: "ดีล / โปรโมชัน", type: "Sale Monitor", scheduleType: "Daily", cronExpression: "0 10 * * *", time: "10:00", dataSources: ["Product Prices", "Global Innovation Product Radar"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
-  { key: "lifestyle", label: "ไอเดียวันหยุด / ไลฟ์สไตล์", name: "ไอเดียวันหยุด / ไลฟ์สไตล์", type: "Lifestyle Ideas", scheduleType: "Weekly", cronExpression: "0 10 * * 6", time: "10:00", dataSources: ["Lifestyle", "Restaurants", "Cafe", "Weekend Ideas"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "public-alerts", label: "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT", name: "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT", type: "Public Alerts", scheduleType: "Daily", cronExpression: "*/20 6-22 * * *", time: null, dataSources: ["Public Notices", "BTS/MRT Status", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 80 },
+  { key: "travel-deals", label: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", name: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", type: "Travel Deals", scheduleType: "Daily", cronExpression: "0 11 * * *", time: "11:00", dataSources: ["Flight Deals", "Hotel Deals", "Travel Promotions", "NewsData.io"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 60 },
 ];
 
 const BATCH_ONE_KEYS = ["daily-brief", "thai-news", "public-notices", "world-news", "ai-tech"];
 const BATCH_TWO_KEYS = ["cybersecurity", "network-cloud", "market-crypto", "weather-pm25"];
 const BATCH_THREE_KEYS = ["traffic", "bts-mrt-alerts", "today-tasks", "important-email", "sports-football"];
-const BATCH_FOUR_KEYS = ["events-products", "deals-promos", "lifestyle"];
+const BATCH_FOUR_KEYS = ["events-products", "deals-promos", "public-alerts", "travel-deals"];
 
 function getKeys(batch: BatchId) {
   if (batch === "one") return BATCH_ONE_KEYS;
@@ -46,7 +47,6 @@ function getKeys(batch: BatchId) {
   return [...BATCH_ONE_KEYS, ...BATCH_TWO_KEYS, ...BATCH_THREE_KEYS, ...BATCH_FOUR_KEYS];
 }
 function getSeeds(batch: BatchId) { const keys = new Set(getKeys(batch)); return DEFAULT_TASKS.filter((task) => keys.has(task.key)); }
-function isLegacyWeekendTask(task: ScheduledTask) { return task.type === "Weekend Ideas" || task.name === "Weekend Ideas Generator" || task.name === "Weekend Ideas" || task.dataSources.includes("Weekend Ideas"); }
 function matchesTask(task: ScheduledTask, seed: TaskSeed) {
   const name = task.name.toLowerCase();
   if (name === seed.name.toLowerCase()) return true;
@@ -56,7 +56,8 @@ function matchesTask(task: ScheduledTask, seed: TaskSeed) {
   if (seed.key === "sports-football") return task.type === "World Cup Recap" || /football|ฟุตบอล|กีฬา/i.test(task.name);
   if (seed.key === "events-products") return task.type === "Concert Alerts" || /concert|คอนเสิร์ต|อีเวนต์/i.test(task.name);
   if (seed.key === "deals-promos") return task.type === "Sale Monitor" && /deal|promo|โปร|สินค้า/i.test(task.name);
-  if (seed.key === "lifestyle") return task.type === "Lifestyle Ideas" || isLegacyWeekendTask(task);
+  if (seed.key === "public-alerts") return task.type === "Public Alerts" || /ประกาศ|แจ้งเตือนรัฐ|bts|mrt|public alert/i.test(task.name);
+  if (seed.key === "travel-deals") return task.type === "Travel Deals" || /flight|hotel|travel|ตั๋วเครื่องบิน|โรงแรม|โปรเดินทาง|ท่องเที่ยว/i.test(task.name);
   return false;
 }
 function isSent(status?: string | null) { return status === "sent" || Boolean(status?.startsWith("mock_sent")); }

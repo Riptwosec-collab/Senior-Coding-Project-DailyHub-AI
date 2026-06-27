@@ -1,4 +1,4 @@
-export type LibraryTopicKey = "daily" | "product" | "market" | "email" | "concert" | "football" | "longread";
+export type LibraryTopicKey = "daily" | "product" | "market" | "email" | "concert" | "football" | "publicAlerts" | "travelDeals" | "longread";
 
 export type LibrarySeedSection = {
   heading: string;
@@ -26,6 +26,48 @@ export type LibrarySeedItem = {
 const UPDATED_AT = "2026-06-25T08:00:00.000Z";
 
 export const DATA_LIBRARY_SEED_ITEMS: LibrarySeedItem[] = [
+  {
+    id: "public-alerts-bts-mrt",
+    topic: "publicAlerts",
+    icon: "📢",
+    titleTh: "ประกาศสำคัญ: แจ้งเตือนรัฐและสถานะ BTS/MRT",
+    titleEn: "Public Alerts: government notices and BTS/MRT status",
+    summaryTh: "หมวดนี้รวบรวมประกาศหน่วยงานรัฐ บริการสาธารณะ ปิดถนน/ปิดพื้นที่ และสถานะ BTS/MRT ขัดข้องที่อาจกระทบการเดินทางหรือแผนงานในวันนั้น",
+    summaryEn: "This category tracks government notices, public-service changes, road closures, and BTS/MRT disruptions that may affect daily plans.",
+    source: "DailyHub Public Alert Desk",
+    category: "Public Alerts / Transit",
+    priority: 88,
+    readTime: "2 นาที",
+    tags: ["Public Alerts", "Government", "BTS", "MRT"],
+    details: ["ติดตามประกาศจากแหล่งทางการ", "เน้นผลกระทบต่อการเดินทางและบริการสาธารณะ", "ส่ง Telegram เฉพาะรายการสำคัญหรือเร่งด่วน"],
+    sections: [
+      { heading: "ข้อมูลที่ควรมี", body: "ชื่อหน่วยงาน พื้นที่ที่ได้รับผลกระทบ เวลาเริ่ม/สิ้นสุด สถานะล่าสุด และลิงก์ประกาศทางการ" },
+      { heading: "ทำไมสำคัญ", body: "ประกาศรัฐหรือ BTS/MRT ขัดข้องมีผลกับเวลานัดหมาย การไปทำงาน และการวางแผนเดินทางทันที" },
+      { heading: "ควรทำต่อ", body: "ตรวจประกาศทางการ เตรียมเส้นทางสำรอง และส่ง Telegram แบบสั้นพร้อมลิงก์อ่านเต็ม" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
+  {
+    id: "travel-deals-thailand",
+    topic: "travelDeals",
+    icon: "✈️",
+    titleTh: "โปรเดินทาง: ตั๋วเครื่องบิน โรงแรม และแพ็กเกจเที่ยวไทย",
+    titleEn: "Travel Deals: flights, hotels, and Thailand trip promos",
+    summaryTh: "รวมข่าวโปรตั๋วเครื่องบินในไทย โปรต่างประเทศที่เริ่มบินจากไทย เส้นทางบินใหม่ ราคาห้องพัก โรงแรม รีสอร์ต และแพ็กเกจท่องเที่ยวในไทย",
+    summaryEn: "Tracks domestic flight deals, international fares departing Thailand, new routes, hotel room rates, resorts, and Thailand travel packages.",
+    source: "DailyHub Travel Deal Watch",
+    category: "Travel Deals / Thailand",
+    priority: 82,
+    readTime: "3 นาที",
+    tags: ["Flight Deals", "Hotels", "Travel", "Thailand"],
+    details: ["แยกจากโปรช้อปปิ้งทั่วไป", "เน้นโปรที่เริ่มบินจากไทยหรือเกี่ยวกับเที่ยวไทย", "ควรเช็กภาษี ค่าธรรมเนียม วันเดินทาง และเงื่อนไขก่อนจอง"],
+    sections: [
+      { heading: "ขอบเขตข่าว", body: "ตั๋วเครื่องบินในประเทศ ต่างประเทศที่เริ่มจากไทย เส้นทางบินใหม่ ราคาห้องพัก โปรโรงแรม/รีสอร์ต และแพ็กเกจเที่ยวไทย" },
+      { heading: "ก่อนจองควรเช็ก", body: "วันเดินทาง blackout date น้ำหนักกระเป๋า ภาษี ค่าธรรมเนียม เงื่อนไขเปลี่ยนวัน/คืนเงิน และรีวิวล่าสุดของที่พัก" },
+      { heading: "รูปแบบส่ง Telegram", body: "ส่งเฉพาะโปรเด่นแบบสั้น พร้อมบอกเงื่อนไขสำคัญและลิงก์อ่านรายละเอียดเต็มในเว็บ" },
+    ],
+    updatedAt: UPDATED_AT,
+  },
   {
     id: "global-news-ai-infra",
     topic: "daily",

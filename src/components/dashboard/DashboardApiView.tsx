@@ -27,8 +27,9 @@ const TASK_TYPE_LABELS: Record<string, LocalizedText> = {
   "Concert Alerts": { th: "แจ้งเตือนคอนเสิร์ต", en: "Concert Alerts" },
   "World Cup Recap": { th: "สรุปฟุตบอล", en: "Football Recap" },
   "Football Recap": { th: "สรุปฟุตบอล", en: "Football Recap" },
-  "Weekend Ideas": { th: "ไอเดียวันหยุด", en: "Weekend Ideas" },
-  "Weekend Long Read": { th: "บทความอ่านยาววันหยุด", en: "Weekend Long Read" },
+  "Public Alerts": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ", en: "Public Alerts" },
+  "Travel Deals": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals" },
+  "Weekend Long Read": { th: "บทความอ่านยาว", en: "Long Read" },
   Custom: { th: "กำหนดเอง", en: "Custom" },
 };
 
@@ -63,12 +64,11 @@ const CONTENT_LABELS: Record<string, LocalizedText> = {
   "Football Recap Nightly": { th: "สรุปฟุตบอลประจำคืน", en: "Football Recap Nightly" },
   "Football Recap Failed": { th: "สรุปฟุตบอลมีปัญหา", en: "Football Recap Failed" },
   "Football Recap มีปัญหา": { th: "สรุปฟุตบอลมีปัญหา", en: "Football Recap has an issue" },
-  "Weekend Ideas Generator": { th: "สร้างไอเดียวันหยุด", en: "Weekend Ideas Generator" },
-  "Weekend Ideas": { th: "ไอเดียวันหยุด", en: "Weekend Ideas" },
-  "Weekend Ideas พร้อมใช้": { th: "ไอเดียวันหยุดพร้อมใช้", en: "Weekend Ideas ready" },
-  "Weekend Long Read Picker": { th: "คัดบทความอ่านยาววันหยุด", en: "Weekend Long Read Picker" },
-  "Weekend Long Read Picks": { th: "บทความอ่านยาวที่น่าอ่าน", en: "Weekend Long Read Picks" },
-  "Weekend Long Read คัดแล้ว": { th: "คัดบทความอ่านยาวแล้ว", en: "Weekend Long Read picked" },
+  "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT", en: "Public Alerts / Government / BTS-MRT" },
+  "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals / Flights / Hotels" },
+  "Weekend Long Read Picker": { th: "คัดบทความอ่านยาว", en: "Long Read Picker" },
+  "Weekend Long Read Picks": { th: "บทความอ่านยาวที่น่าอ่าน", en: "Long Read Picks" },
+  "Weekend Long Read คัดแล้ว": { th: "คัดบทความอ่านยาวแล้ว", en: "Long Read picked" },
   "Morning Daily Brief พร้อมแล้ว": { th: "สรุปข่าวเช้าพร้อมแล้ว", en: "Morning Daily Brief is ready" },
   "มีอีเมลสำคัญต้องดู": { th: "มีอีเมลสำคัญต้องดู", en: "Important emails need review" },
   "พบคอนเสิร์ตน่าสนใจ": { th: "พบคอนเสิร์ตน่าสนใจ", en: "Interesting concerts found" },
@@ -94,8 +94,8 @@ const CONTENT_LABELS: Record<string, LocalizedText> = {
     en: "GPT summarized AI news and weather updates. Priority 82/100.",
   },
   "แนะนำคาเฟ่ช่วงเช้าและกิจกรรม outdoor พร้อม prompt ภาพ 9:16": {
-    th: "แนะนำคาเฟ่ช่วงเช้าและกิจกรรม outdoor พร้อม prompt ภาพ 9:16",
-    en: "Recommended a morning cafe and outdoor activity with a 9:16 image prompt.",
+    th: "พบโปรเดินทางและที่พักที่ควรตรวจเงื่อนไขก่อนจอง",
+    en: "Found travel and hotel deals worth checking before booking.",
   },
   "Task ดึงข้อมูล Football API mock ไม่สำเร็จ ต้องตรวจสอบก่อนรันใหม่": {
     th: "Task ดึงข้อมูล Football API mock ไม่สำเร็จ ต้องตรวจสอบก่อนรันใหม่",
@@ -110,8 +110,8 @@ const CONTENT_LABELS: Record<string, LocalizedText> = {
     en: "Concerts near Bangkok were found and are worth saving. Priority 78/100.",
   },
   "คัดบทความอ่านยาวเกี่ยวกับ AI agents และ productivity systems สำหรับวันหยุด": {
-    th: "คัดบทความอ่านยาวเกี่ยวกับ AI agents และ productivity systems สำหรับวันหยุด",
-    en: "Picked long reads about AI agents and productivity systems for the weekend.",
+    th: "คัดบทความอ่านยาวเกี่ยวกับ AI agents และ productivity systems",
+    en: "Picked long reads about AI agents and productivity systems.",
   },
 };
 

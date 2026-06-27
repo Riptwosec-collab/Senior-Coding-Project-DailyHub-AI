@@ -1,8 +1,11 @@
 import { fail, getRequestId, ok } from "@/lib/api/response";
-import { requireCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { assertRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createScheduledTask, listScheduledTasks, updateScheduledTask } from "@/lib/repositories/scheduled-tasks.repository";
 import { runTaskNow } from "@/services/task-runner.service";
+import { sendTelegramMessage } from "@/services/telegram.service";
 import type { ScheduledTask } from "@/types/scheduled-task";
+import type { TaskRun } from "@/types/task-run";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +14,6 @@ type BatchId = "one" | "two" | "all";
 type TaskSeed = { key: string; label: string; name: string; type: ScheduledTask["type"]; scheduleType: ScheduledTask["scheduleType"]; cronExpression: string; time: string | null; dataSources: string[]; gptActions: string[]; minPriorityScore: number };
 
 const DEFAULT_TASKS: TaskSeed[] = [
-  { key: "global-product-radar", label: "???????????????/???????????????", name: "??????????/??????????????", type: "Sale Monitor", scheduleType: "Hourly", cronExpression: "0 * * * *", time: null, dataSources: ["Global Innovation Product Radar"], gptActions: ["Analyze Priority", "Generate Caption", "Recommend Action"], minPriorityScore: 70 },
   { key: "global-product-radar", label: "สินค้าเทคโนโลยี/นวัตกรรมทั่วโลก", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor", scheduleType: "Hourly", cronExpression: "0 * * * *", time: null, dataSources: ["Global Innovation Product Radar"], gptActions: ["Analyze Priority", "Generate Caption", "Recommend Action"], minPriorityScore: 70 },
   { key: "us-stock-news", label: "US Stock News", name: "US Stock News", type: "US Stock News", scheduleType: "Daily", cronExpression: "0 7 * * 1-5", time: "07:00", dataSources: ["US Stock News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 60 },
   { key: "email-digest", label: "Daily Email Digest", name: "Daily Email Digest", type: "Email Monitor", scheduleType: "Daily", cronExpression: "0 18 * * *", time: "18:00", dataSources: ["Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 50 },
@@ -89,6 +91,94 @@ async function runBatchForUser(userId: string, batch: BatchId) {
   return { batch, summary: { requestedCount: seeds.length, sentCount, failedCount, createdCount }, results };
 }
 
+function buildPublicDemoTask(seed: TaskSeed): ScheduledTask {
+  const now = new Date().toISOString();
+  return {
+    id: `public_${seed.key}`,
+    userId: "public-demo",
+    name: seed.name,
+    type: seed.type,
+    scheduleType: seed.scheduleType,
+    cronExpression: seed.cronExpression,
+    time: seed.time,
+    timezone: "Asia/Bangkok",
+    dataSources: seed.dataSources,
+    gptActions: seed.gptActions,
+    outputChannels: ["Save to Web Dashboard", "Save to Notifications", "Send Telegram"],
+    minPriorityScore: 0,
+    status: "Active",
+    isActive: true,
+    lastRunAt: now,
+    nextRunAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function buildPublicDemoRun(task: ScheduledTask, seed: TaskSeed): TaskRun {
+  const now = new Date().toISOString();
+  return {
+    id: `public_run_${seed.key}_${Date.now()}`,
+    taskId: task.id,
+    status: "success",
+    startedAt: now,
+    finishedAt: now,
+    rawInput: {
+      source: "DailyHub public demo",
+      topic: seed.label,
+      dataSources: seed.dataSources,
+    },
+    gptPrompt: `Send DailyHub public demo Telegram batch for ${seed.name}`,
+    gptOutput: {
+      title: seed.name,
+      summary: `${seed.label} is ready from DailyHub. This public demo sends a compact Telegram status without requiring a sign-in session.`,
+      priority_score: Math.max(seed.minPriorityScore, 70),
+      recommended_action: "Open DailyHub dashboard to review details and run the full workflow.",
+      caption: seed.name,
+      image_prompt: null,
+    },
+    priorityScore: Math.max(seed.minPriorityScore, 70),
+    telegramStatus: "pending",
+    errorMessage: null,
+    originalContent: undefined,
+    translatedContent: undefined,
+    language: "en",
+    translatedAt: undefined,
+    translation: undefined,
+  };
+}
+
+async function runPublicDemoBatch(batch: BatchId) {
+  const seeds = getSeeds(batch);
+  const results = [];
+  let sentCount = 0;
+  let failedCount = 0;
+
+  for (const seed of seeds) {
+    try {
+      const task = buildPublicDemoTask(seed);
+      const run = buildPublicDemoRun(task, seed);
+      const telegramResult = await sendTelegramMessage({ task, run });
+      if (isSent(telegramResult.status)) sentCount += 1;
+      if (telegramResult.status.includes("failed")) failedCount += 1;
+      results.push({
+        taskId: task.id,
+        taskName: task.name,
+        taskType: task.type,
+        status: "success",
+        telegramStatus: telegramResult.status,
+        priorityScore: run.priorityScore,
+        runId: run.id,
+      });
+    } catch (error) {
+      failedCount += 1;
+      results.push({ taskId: null, taskName: seed.name, taskType: seed.type, status: "failed", telegramStatus: "failed_public_demo_error", priorityScore: null, runId: null, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+
+  return { batch, summary: { requestedCount: seeds.length, sentCount, failedCount, createdCount: 0 }, results };
+}
+
 function redirectAfterRun(request: Request, redirectTo: string, result: Awaited<ReturnType<typeof runBatchForUser>>) {
   const url = new URL(redirectTo, request.url);
   url.searchParams.set("batch", result.batch);
@@ -102,8 +192,11 @@ function redirectAfterRun(request: Request, redirectTo: string, result: Awaited<
 
 async function handleBatchRequest(request: Request, batch: BatchId, redirectTo: string | null, requestId: string) {
   try {
-    const user = await requireCurrentUser();
-    const result = await runBatchForUser(user.id, batch);
+    const ip = getClientIp(request);
+    await assertRateLimit({ key: `run-batch:${ip}:${batch}`, limit: 4, windowMs: 60_000 });
+
+    const user = await getCurrentUser();
+    const result = user ? await runBatchForUser(user.id, batch) : await runPublicDemoBatch(batch);
     if (redirectTo) return redirectAfterRun(request, redirectTo, result);
     return ok(result, { requestId });
   } catch (error) { return fail(error, requestId); }

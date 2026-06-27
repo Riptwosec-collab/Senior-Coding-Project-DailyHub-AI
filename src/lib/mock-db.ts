@@ -10,6 +10,7 @@ export interface NimbusDailyMockDb {
 }
 
 type ApiErrorCode =
+  | "UNAUTHORIZED"
   | "BAD_REQUEST"
   | "NOT_FOUND"
   | "INVALID_JSON"

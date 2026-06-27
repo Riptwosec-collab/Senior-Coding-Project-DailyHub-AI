@@ -13,20 +13,20 @@ type TelegramTopicMeta = {
 
 const DEFAULT_TOPIC_META: TelegramTopicMeta = {
   emoji: "🧠",
-  label: "General",
-  shortLabel: "General",
+  label: "ทั่วไป",
+  shortLabel: "ทั่วไป",
 };
 
 const TOPIC_META = {
-  email: { emoji: "📧", label: "Email Monitor", shortLabel: "Email" },
-  productRadar: { emoji: "🌍", label: "สินค้าใหม่/น่าสนใจทั่วโลก", shortLabel: "Product Radar" },
-  football: { emoji: "⚽", label: "Football Recap", shortLabel: "Football" },
-  concert: { emoji: "🎤", label: "Concert Alerts", shortLabel: "Concert" },
-  weather: { emoji: "🌦️", label: "Weather Update", shortLabel: "Weather" },
-  publicAlerts: { emoji: "📢", label: "ประกาศสำคัญ / แจ้งเตือนรัฐ", shortLabel: "Public Alerts" },
-  travelDeals: { emoji: "✈️", label: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", shortLabel: "Travel Deals" },
-  dailyBrief: { emoji: "📰", label: "Daily Brief / News", shortLabel: "News" },
-  test: { emoji: "🧪", label: "Telegram Test", shortLabel: "Test" },
+  email: { emoji: "📧", label: "อีเมลสำคัญ", shortLabel: "อีเมล" },
+  productRadar: { emoji: "🌍", label: "สินค้าใหม่ / โปรโมชัน", shortLabel: "สินค้าและดีล" },
+  football: { emoji: "⚽", label: "สรุปฟุตบอล", shortLabel: "ฟุตบอล" },
+  concert: { emoji: "🎤", label: "อีเวนต์ / คอนเสิร์ต / สินค้าใหม่", shortLabel: "อีเวนต์" },
+  weather: { emoji: "🌦️", label: "อากาศ / PM2.5", shortLabel: "อากาศ" },
+  publicAlerts: { emoji: "📢", label: "ประกาศสำคัญ / แจ้งเตือนรัฐ", shortLabel: "ประกาศรัฐ" },
+  travelDeals: { emoji: "✈️", label: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", shortLabel: "โปรเดินทาง" },
+  dailyBrief: { emoji: "📰", label: "ข่าวประจำวัน", shortLabel: "ข่าว" },
+  test: { emoji: "🧪", label: "ทดสอบ Telegram", shortLabel: "ทดสอบ" },
 } satisfies Record<string, TelegramTopicMeta>;
 
 export function getTelegramModeStatus() {
@@ -45,6 +45,46 @@ function truncate(value: string, max = 420) {
   const text = value.replace(/\s+/g, " ").trim();
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1)}…`;
+}
+
+function countThaiChars(value: string) {
+  return (value.match(/[\u0E00-\u0E7F]/g) ?? []).length;
+}
+
+function countLatinChars(value: string) {
+  return (value.match(/[A-Za-z]/g) ?? []).length;
+}
+
+function isThaiReady(value: string) {
+  const thaiChars = countThaiChars(value);
+  const latinChars = countLatinChars(value);
+  return thaiChars > 0 && latinChars <= Math.max(20, thaiChars * 2);
+}
+
+function thaiTelegramText(value: string | null | undefined, fallback: string, max = 420) {
+  const text = truncate(value ?? "", max);
+  return isThaiReady(text) ? text : fallback;
+}
+
+function formatStatusThai(status: string) {
+  if (status === "success") return "สำเร็จ";
+  if (status === "failed") return "ล้มเหลว";
+  if (status === "running") return "กำลังรัน";
+  return status || "ไม่ระบุ";
+}
+
+function formatSourceList(stats: ReturnType<typeof getDataStats>, task: ScheduledTask) {
+  const sources = stats.sourceNames.length ? stats.sourceNames : task.dataSources;
+  if (!sources.length) return "ยังไม่มีแหล่งข้อมูลจาก API ให้แสดง";
+  const visible = sources.slice(0, 5).map((source) => truncate(source, 80));
+  const hiddenCount = sources.length - visible.length;
+  return `${visible.join(", ")}${hiddenCount > 0 ? ` และอีก ${hiddenCount} แหล่ง` : ""}`;
+}
+
+function clampSingleTopicMessage(text: string) {
+  if (text.length <= TELEGRAM_SAFE_LIMIT) return text;
+  const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด DailyHub เพื่ออ่านรายละเอียดเต็ม";
+  return `${text.slice(0, TELEGRAM_SAFE_LIMIT - footer.length - 1).trim()}…${footer}`;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -116,9 +156,17 @@ function getDataStats(run: TaskRun) {
 }
 
 function getThaiBullets(run: TaskRun) {
+  const fallbackBullets = [
+    "เปิด DailyHub เพื่ออ่านรายละเอียดเต็มจากแหล่งข้อมูลต้นฉบับ",
+    "ระบบแปลและสรุปเป็นภาษาไทยก่อนส่ง Telegram",
+  ];
+
   const translation = run.translation;
   if (translation?.translatedBullets?.length) {
-    return translation.translatedBullets.slice(0, MAX_TELEGRAM_BULLETS).map((item) => `- ${truncate(item, 180)}`).join("\n");
+    const bullets = translation.translatedBullets
+      .slice(0, MAX_TELEGRAM_BULLETS)
+      .map((item, index) => thaiTelegramText(item, fallbackBullets[index] ?? fallbackBullets[0], 180));
+    return bullets.map((item) => `- ${item}`).join("\n");
   }
 
   const actionLines = run.gptOutput.recommended_action
@@ -126,39 +174,36 @@ function getThaiBullets(run: TaskRun) {
     .map((item) => item.trim())
     .filter(Boolean);
 
-  if (actionLines.length) return actionLines.slice(0, MAX_TELEGRAM_BULLETS).map((item) => `- ${truncate(item, 180)}`).join("\n");
-  return `- ${truncate(run.gptOutput.summary, 220)}`;
+  if (actionLines.length) {
+    return actionLines
+      .slice(0, MAX_TELEGRAM_BULLETS)
+      .map((item, index) => `- ${thaiTelegramText(item, fallbackBullets[index] ?? fallbackBullets[0], 180)}`)
+      .join("\n");
+  }
+
+  return `- ${thaiTelegramText(run.gptOutput.summary, fallbackBullets[0], 220)}`;
 }
 
 function getTranslationMode(run: TaskRun) {
   const mode = run.translation?.mode;
-  if (mode === "ai") return "AI/Groq";
-  if (mode === "fallback") return "Fallback";
-  if (mode === "normalized") return "ปรับรูปแบบไทย";
-  return "ไม่ระบุ";
-}
-
-function getAppBaseUrl() {
-  const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
-  if (explicit) return explicit.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "";
-}
-
-function getFullDataUrl(run: TaskRun) {
-  const baseUrl = getAppBaseUrl();
-  if (!baseUrl) return "";
-  return `${baseUrl}/data-library?run=${encodeURIComponent(run.id)}`;
+  if (mode === "ai") return "แปลไทยด้วย AI";
+  if (mode === "fallback") return "สรุปไทยด้วยระบบสำรอง";
+  if (mode === "normalized") return "ปรับรูปแบบไทยแล้ว";
+  return "แปลไทยก่อนส่ง";
 }
 
 function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const translation = run.translation;
   const topicMeta = getTaskTopicMeta(task);
   const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
-  const title = translation?.translatedTitle ?? run.gptOutput.title;
-  const summary = translation?.translatedSummary ?? run.translatedContent ?? run.gptOutput.summary;
+  const title = thaiTelegramText(translation?.translatedTitle ?? run.gptOutput.title, `${topicMeta.label} จาก DailyHub`, 180);
+  const summary = thaiTelegramText(
+    translation?.translatedSummary ?? run.translatedContent ?? run.gptOutput.summary,
+    "DailyHub แปลและสรุปหัวข้อนี้เป็นภาษาไทยแล้ว เปิดเว็บเพื่ออ่านรายละเอียดเต็ม",
+    520,
+  );
   const stats = getDataStats(run);
-  const fullDataUrl = getFullDataUrl(run);
+  const sources = formatSourceList(stats, task);
 
   return [
     `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}`,
@@ -172,40 +217,21 @@ function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
     getThaiBullets(run),
     "",
     "ข้อมูลเต็ม:",
-    `- แหล่งข้อมูล: ${stats.sourceNames.length ? stats.sourceNames.join(", ") : task.dataSources.join(", ") || task.type}`,
+    `- แหล่งข้อมูล: ${sources}`,
     `- จำนวนแหล่งข้อมูล: ${stats.sourceCount}`,
     `- จำนวนรายการที่เก็บไว้บนเว็บ: ${stats.itemCount}`,
-    fullDataUrl ? `- อ่านข้อมูลเต็มแยกหมวด: ${fullDataUrl}` : "- อ่านข้อมูลเต็มได้ที่หน้า Data Library บนเว็บ",
+    "- อ่านข้อมูลเต็มได้ที่หน้า Data Library บนเว็บ",
     "",
     `โหมดแปล: ${getTranslationMode(run)}`,
-    `Priority: ${run.priorityScore}/100`,
-    `Status: ${run.status}`,
+    `ความสำคัญ: ${run.priorityScore}/100`,
+    `สถานะ: ${formatStatusThai(run.status)}`,
     `เวลาอัปเดต: ${translatedAt}`,
   ].filter(Boolean).join("\n");
 }
 
-function splitLongText(text: string, limit = TELEGRAM_SAFE_LIMIT) {
-  if (text.length <= limit) return [text];
-
-  const chunks: string[] = [];
-  let remaining = text;
-  while (remaining.length > limit) {
-    const slice = remaining.slice(0, limit);
-    const breakIndex = Math.max(slice.lastIndexOf("\n\n"), slice.lastIndexOf("\n"));
-    const safeIndex = breakIndex > limit * 0.5 ? breakIndex : limit;
-    chunks.push(remaining.slice(0, safeIndex).trim());
-    remaining = remaining.slice(safeIndex).trim();
-  }
-  if (remaining) chunks.push(remaining);
-  return chunks;
-}
-
 export function buildTelegramMessages(task: ScheduledTask, run: TaskRun) {
   const compactMessage = buildMainTelegramMessage(task, run);
-  return splitLongText(compactMessage).map((chunk, index, chunks) => {
-    if (chunks.length === 1) return chunk;
-    return `${chunk}\n\n(${index + 1}/${chunks.length})`;
-  });
+  return [clampSingleTopicMessage(compactMessage)];
 }
 
 export function buildTelegramMessage(task: ScheduledTask, run: TaskRun) {
@@ -242,7 +268,7 @@ export async function sendTelegramMessage({ task, run }: { task: ScheduledTask; 
       responses.push(responseText);
     }
 
-    return { status: "sent", message: `Telegram summary sent (${messages.length} part${messages.length > 1 ? "s" : ""})`, response: responses.join("\n") };
+    return { status: "sent", message: `Telegram sent as ${messages.length} topic message`, response: responses.join("\n") };
   } catch (error) {
     if (fallback) return { status: "mock_sent_fallback", message: error instanceof Error ? error.message : "Telegram fallback" };
     return { status: "failed", message: error instanceof Error ? error.message : "Telegram failed" };

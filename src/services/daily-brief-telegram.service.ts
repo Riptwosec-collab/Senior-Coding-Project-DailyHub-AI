@@ -1,4 +1,4 @@
-import { buildTelegramBriefText, splitTelegramText } from "@/services/news-summary.service";
+import { buildTelegramBriefTopicMessages } from "@/services/news-summary.service";
 import type { DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
 
 export interface DailyBriefTelegramResult {
@@ -8,8 +8,7 @@ export interface DailyBriefTelegramResult {
 }
 
 export async function sendDailyBriefToTelegram(summary: DailyBriefSummary, items: DailyBriefItem[]): Promise<DailyBriefTelegramResult> {
-  const text = buildTelegramBriefText(summary, items);
-  const messages = splitTelegramText(text);
+  const messages = buildTelegramBriefTopicMessages(summary, items);
   const enabled = process.env.ENABLE_TELEGRAM === "true";
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -31,7 +30,7 @@ export async function sendDailyBriefToTelegram(summary: DailyBriefSummary, items
       if (!response.ok) throw new Error(`Telegram API failed: ${response.status} ${responseText}`);
     }
 
-    return { status: "sent", message: `Daily Brief sent to Telegram in ${messages.length} part(s)`, parts: messages.length };
+    return { status: "sent", message: `Daily Brief sent to Telegram as ${messages.length} topic message(s)`, parts: messages.length };
   } catch (error) {
     if (fallback) {
       return { status: "mock_sent", message: error instanceof Error ? error.message : "Telegram fallback mode", parts: messages.length };

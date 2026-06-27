@@ -2,9 +2,26 @@ import { dailyBriefCategories } from "@/data/daily-brief.mock";
 import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import type { DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
 
+const TELEGRAM_TOPIC_LIMIT = 3200;
+
 function truncate(value: string, max = 260) {
   const text = value.replace(/\s+/g, " ").trim();
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+function hasThaiText(value: string) {
+  return /[\u0E00-\u0E7F]/.test(value);
+}
+
+function thaiOnly(value: string | null | undefined, fallback: string, max = 260) {
+  const text = truncate(value ?? "", max);
+  return hasThaiText(text) ? text : fallback;
+}
+
+function clampTelegramTopicMessage(text: string) {
+  if (text.length <= TELEGRAM_TOPIC_LIMIT) return text;
+  const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด DailyHub เพื่ออ่านรายละเอียดเต็ม";
+  return `${text.slice(0, TELEGRAM_TOPIC_LIMIT - footer.length - 1).trim()}…${footer}`;
 }
 
 function getCategoryLabel(key: string) {
@@ -61,55 +78,82 @@ export function summarizeSingleNews(item: DailyBriefItem): DailyBriefItem {
 }
 
 export function buildTelegramBriefText(summary: DailyBriefSummary, items: DailyBriefItem[]) {
-  const byCategory = dailyBriefCategories
-    .filter((category) => category.key !== "all")
-    .map((category) => {
-      const detail = getDailyBriefTopicDetail(category.key);
-      const lines = items
-        .filter((item) => item.category === category.key && !item.isHidden)
-        .slice(0, 3)
-        .map((item) => `• ${truncate(item.titleTh, 110)} — ${truncate(item.summaryTh, 160)}\n  อ่านต่อ: ${item.sourceUrl}`);
-      const subtopics = detail.subtopicsTh.slice(0, 6).join(" / ");
-      const note = detail.noteTh ? `\nหมายเหตุ: ${detail.noteTh}` : "";
-      return lines.length ? `${detail.icon} ${detail.labelTh}\nหัวข้อย่อย: ${subtopics}${note}\n${lines.join("\n")}` : "";
-    })
-    .filter(Boolean);
-
-  const topStories = summary.topStories
-    .map((item, index) => `${index + 1}. ${truncate(item.titleTh, 120)}\n   สรุป: ${truncate(item.summaryTh, 180)}\n   อ่านต่อ: ${item.sourceUrl}`)
-    .join("\n\n");
-
-  return [
-    "DailyHub Brief วันนี้",
-    `วันที่: ${summary.date}`,
-    "ข่าวทั้งหมดถูก normalize/แปลไทยก่อนสรุป และ Telegram ส่งเฉพาะข่าวย่อพร้อมลิงก์อ่านเต็ม",
-    "",
-    "🔥 Top 5 ข่าวสำคัญ",
-    topStories || "ยังไม่มีข่าวสำคัญ",
-    "",
-    ...byCategory,
-    "",
-    "สิ่งที่ควรติดตามต่อ:",
-    ...summary.watchItems.map((item) => `• ${item}`),
-    "",
-    `โหมดสรุป: ${summary.mode === "fallback" ? "Fallback / Rule-based" : summary.mode}`,
-    "ส่งจาก DailyHub",
-  ].filter(Boolean).join("\n");
+  return buildTelegramBriefTopicMessages(summary, items).join("\n\n---\n\n");
 }
 
-export function splitTelegramText(text: string, limit = 3600) {
-  if (text.length <= limit) return [text];
-  const chunks: string[] = [];
-  let remaining = text;
+function getThaiBulletPoints(item: DailyBriefItem) {
+  const fallback = [
+    "อ่านรายละเอียดเต็มจากแหล่งข่าวต้นฉบับ",
+    `หมวดข่าว: ${getCategoryLabel(item.category)}`,
+    "ระบบส่งสรุปภาษาไทยแบบย่อไป Telegram เท่านั้น",
+  ];
 
-  while (remaining.length > limit) {
-    const slice = remaining.slice(0, limit);
-    const breakIndex = Math.max(slice.lastIndexOf("\n\n"), slice.lastIndexOf("\n"));
-    const safeIndex = breakIndex > limit * 0.55 ? breakIndex : limit;
-    chunks.push(remaining.slice(0, safeIndex).trim());
-    remaining = remaining.slice(safeIndex).trim();
-  }
+  const bullets = item.bulletPoints
+    .filter((point) => hasThaiText(point))
+    .slice(0, 3);
 
-  if (remaining) chunks.push(remaining);
-  return chunks.map((chunk, index) => chunks.length > 1 ? `${chunk}\n\n(${index + 1}/${chunks.length})` : chunk);
+  return bullets.length ? bullets : fallback;
+}
+
+function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey: DailyBriefItem["category"], categoryItems: DailyBriefItem[]) {
+  const detail = getDailyBriefTopicDetail(categoryKey);
+  const topicSummary = thaiOnly(
+    summary.categorySummaries[categoryKey] || categoryItems[0]?.summaryTh,
+    `${detail.labelTh}: มีข่าวในหัวข้อนี้ที่พร้อมอ่านบน DailyHub`,
+    420,
+  );
+  const visibleItems = categoryItems
+    .filter((item) => !item.isHidden)
+    .slice()
+    .sort((a, b) => b.priorityScore - a.priorityScore);
+
+  const itemLines = visibleItems.slice(0, 3).map((item, index) => {
+    const title = thaiOnly(item.titleTh, `${detail.labelTh} รายการที่ ${index + 1}`, 130);
+    const itemSummary = thaiOnly(item.summaryTh, "สรุปภาษาไทยพร้อมอ่านบน DailyHub", 220);
+    const bullets = getThaiBulletPoints(item).map((point) => `   - ${truncate(point, 120)}`).join("\n");
+    const source = item.sourceName ? `   แหล่งข้อมูล: ${truncate(item.sourceName, 80)}` : "   แหล่งข้อมูล: เปิดดูใน DailyHub";
+    return `${index + 1}. ${title}\n   สรุป: ${itemSummary}\n${bullets}\n${source}`;
+  });
+
+  const remainingCount = visibleItems.length - itemLines.length;
+
+  return clampTelegramTopicMessage([
+    `${detail.icon} DailyHub Brief`,
+    `หัวข้อ: ${detail.labelTh}`,
+    `วันที่: ${summary.date}`,
+    `จำนวนข่าวในหัวข้อนี้: ${visibleItems.length}`,
+    "",
+    "สรุปไทยก่อนส่ง:",
+    topicSummary,
+    "",
+    "ข่าวสำคัญ:",
+    itemLines.join("\n\n") || "ยังไม่มีข่าวในหัวข้อนี้",
+    remainingCount > 0 ? `\nและอีก ${remainingCount} รายการ เปิดอ่านเต็มได้ใน DailyHub` : "",
+    "",
+    "อ่านเต็ม:",
+    "เปิดหน้า DailyHub เพื่ออ่านข่าวเต็มและแหล่งข่าวต้นฉบับ",
+    "",
+    "ส่งจาก DailyHub",
+  ].filter(Boolean).join("\n"));
+}
+
+export function buildTelegramBriefTopicMessages(summary: DailyBriefSummary, items: DailyBriefItem[]) {
+  const visibleItems = items.filter((item) => !item.isHidden);
+  const messages = dailyBriefCategories
+    .filter((category) => category.key !== "all")
+    .flatMap((category) => {
+      const categoryItems = visibleItems.filter((item) => item.category === category.key);
+      return categoryItems.length ? [buildTelegramBriefTopicMessage(summary, category.key, categoryItems)] : [];
+    });
+
+  if (messages.length) return messages;
+
+  return [clampTelegramTopicMessage([
+    "DailyHub Brief",
+    `วันที่: ${summary.date}`,
+    "หัวข้อ: ข่าวประจำวัน",
+    "",
+    "ยังไม่มีข่าวที่พร้อมส่ง Telegram ในรอบนี้",
+    "เปิด DailyHub เพื่อตรวจสถานะการดึงข่าวและรันใหม่",
+  ].join("\n"))];
 }

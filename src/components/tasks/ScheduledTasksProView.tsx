@@ -298,7 +298,11 @@ function TaskCard({ task, isBusy, onRunNow, onTogglePause, text, lang }: { task:
 function LoadingSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, index) => <Card key={index} className="h-48 animate-pulse bg-white/[0.04]" />)}
+      {Array.from({ length: 6 }).map((_, index) => (
+        <Card key={index} className="h-48 animate-pulse bg-white/[0.04]">
+          <span className="sr-only">Loading scheduled task card</span>
+        </Card>
+      ))}
     </div>
   );
 }

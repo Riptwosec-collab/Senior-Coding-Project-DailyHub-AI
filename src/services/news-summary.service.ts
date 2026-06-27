@@ -3,6 +3,7 @@ import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import type { DailyBriefItem, DailyBriefSummary } from "@/types/daily-brief";
 
 const TELEGRAM_TOPIC_LIMIT = 3200;
+const TELEGRAM_STORY_LIMIT = 5;
 
 function truncate(value: string, max = 260) {
   const text = value.replace(/\s+/g, " ").trim();
@@ -22,6 +23,17 @@ function clampTelegramTopicMessage(text: string) {
   if (text.length <= TELEGRAM_TOPIC_LIMIT) return text;
   const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด DailyHub เพื่ออ่านรายละเอียดเต็ม";
   return `${text.slice(0, TELEGRAM_TOPIC_LIMIT - footer.length - 1).trim()}…${footer}`;
+}
+
+function getAppBaseUrl() {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "https://daily-hub-pi.vercel.app";
+}
+
+function buildDailyBriefTopicUrl(categoryKey: DailyBriefItem["category"]) {
+  return `${getAppBaseUrl()}/daily?category=${encodeURIComponent(categoryKey)}`;
 }
 
 function getCategoryLabel(key: string) {
@@ -107,15 +119,16 @@ function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey:
     .slice()
     .sort((a, b) => b.priorityScore - a.priorityScore);
 
-  const itemLines = visibleItems.slice(0, 3).map((item, index) => {
+  const itemLines = visibleItems.slice(0, TELEGRAM_STORY_LIMIT).map((item, index) => {
     const title = thaiOnly(item.titleTh, `${detail.labelTh} รายการที่ ${index + 1}`, 130);
     const itemSummary = thaiOnly(item.summaryTh, "สรุปภาษาไทยพร้อมอ่านบน DailyHub", 220);
-    const bullets = getThaiBulletPoints(item).map((point) => `   - ${truncate(point, 120)}`).join("\n");
-    const source = item.sourceName ? `   แหล่งข้อมูล: ${truncate(item.sourceName, 80)}` : "   แหล่งข้อมูล: เปิดดูใน DailyHub";
-    return `${index + 1}. ${title}\n   สรุป: ${itemSummary}\n${bullets}\n${source}`;
+    const keyPoint = getThaiBulletPoints(item)[0] || "เปิด DailyHub เพื่ออ่านรายละเอียดเพิ่มเติม";
+    return `เรื่องที่ ${index + 1}: ${title}\nสรุป: ${itemSummary}\nประเด็น: ${truncate(keyPoint, 140)}`;
   });
 
   const remainingCount = visibleItems.length - itemLines.length;
+  const sources = Array.from(new Set(visibleItems.map((item) => item.sourceName).filter(Boolean))).slice(0, 5);
+  const fullDataUrl = buildDailyBriefTopicUrl(categoryKey);
 
   return clampTelegramTopicMessage([
     `${detail.icon} DailyHub Brief`,
@@ -123,16 +136,20 @@ function buildTelegramBriefTopicMessage(summary: DailyBriefSummary, categoryKey:
     `วันที่: ${summary.date}`,
     `จำนวนข่าวในหัวข้อนี้: ${visibleItems.length}`,
     "",
-    "สรุปไทยก่อนส่ง:",
+    "📋 สรุปสั้น",
     topicSummary,
     "",
-    "ข่าวสำคัญ:",
+    "⭐ เรื่องสำคัญ",
     itemLines.join("\n\n") || "ยังไม่มีข่าวในหัวข้อนี้",
     remainingCount > 0 ? `\nและอีก ${remainingCount} รายการ เปิดอ่านเต็มได้ใน DailyHub` : "",
     "",
-    "อ่านเต็ม:",
-    "เปิดหน้า DailyHub เพื่ออ่านข่าวเต็มและแหล่งข่าวต้นฉบับ",
+    "🔗 แหล่งข้อมูล",
+    sources.length ? sources.map((source) => `- ${truncate(source, 80)}`).join("\n") : "- DailyHub",
     "",
+    "🌐 ข้อมูลเต็ม",
+    fullDataUrl,
+    "",
+    `ภาษา: ไทย | Priority: ${visibleItems[0]?.priorityScore ?? 70}/100 | Status: success`,
     "ส่งจาก DailyHub",
   ].filter(Boolean).join("\n"));
 }

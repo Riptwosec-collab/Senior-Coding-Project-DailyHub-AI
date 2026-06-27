@@ -4,6 +4,7 @@ import type { TaskRun } from "@/types/task-run";
 const TELEGRAM_BRAND_NAME = "Nimbus Daily";
 const TELEGRAM_SAFE_LIMIT = 3600;
 const MAX_TELEGRAM_BULLETS = 4;
+const MAX_TELEGRAM_STORIES = 5;
 
 type TelegramTopicMeta = {
   emoji: string;
@@ -81,6 +82,17 @@ function formatSourceList(stats: ReturnType<typeof getDataStats>, task: Schedule
   return `${visible.join(", ")}${hiddenCount > 0 ? ` และอีก ${hiddenCount} แหล่ง` : ""}`;
 }
 
+function getAppBaseUrl() {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "https://daily-hub-pi.vercel.app";
+}
+
+function getTaskFullDataUrl(run: TaskRun) {
+  return `${getAppBaseUrl()}/data-library?run=${encodeURIComponent(run.id)}`;
+}
+
 function clampSingleTopicMessage(text: string) {
   if (text.length <= TELEGRAM_SAFE_LIMIT) return text;
   const footer = "\n\nข้อความถูกย่อให้เหลือ 1 ข้อความต่อหัวข้อ เปิด DailyHub เพื่ออ่านรายละเอียดเต็ม";
@@ -144,6 +156,20 @@ function getSourceItems(sourceRecord: Record<string, unknown>) {
   return [];
 }
 
+function describeSourceItem(item: unknown, fallback: string) {
+  const record = asRecord(item);
+  if (!record) return thaiTelegramText(String(item ?? ""), fallback, 260);
+
+  const title = asString(record.title) || asString(record.titleTh) || asString(record.deal) || asString(record.headline) || asString(record.subject) || asString(record.name);
+  const summary = asString(record.summaryTh) || asString(record.summary) || asString(record.description) || asString(record.recommendedAction) || asString(record.whyItMatters);
+  const whatToCheck = Array.isArray(record.whatToCheck)
+    ? record.whatToCheck.slice(0, 3).map(asString).filter(Boolean).join(", ")
+    : "";
+  const text = [title, summary, whatToCheck ? `ควรเช็ก: ${whatToCheck}` : ""].filter(Boolean).join(" - ");
+
+  return thaiTelegramText(text, fallback, 260);
+}
+
 function getDataStats(run: TaskRun) {
   const sources = getSourceRecords(run);
   const sourceNames = sources.map((source) => asString(source.source) || asString(source.title)).filter(Boolean);
@@ -184,6 +210,28 @@ function getThaiBullets(run: TaskRun) {
   return `- ${thaiTelegramText(run.gptOutput.summary, fallbackBullets[0], 220)}`;
 }
 
+function getTelegramStories(task: ScheduledTask, run: TaskRun) {
+  const sources = getSourceRecords(run);
+  const sourceStories = sources.flatMap((source) => {
+    const sourceName = asString(source.source) || asString(source.title) || task.name;
+    return getSourceItems(source).map((item) => describeSourceItem(item, `ข้อมูลจาก ${sourceName}`));
+  });
+  const translatedStories = run.translation?.translatedBullets?.map((item) => thaiTelegramText(item, `ประเด็นจาก ${task.name}`, 220)) ?? [];
+  const summaryStory = thaiTelegramText(run.translatedContent ?? run.gptOutput.summary, `${task.name} พร้อมอ่านรายละเอียดเต็มใน DailyHub`, 240);
+
+  const stories = [...sourceStories, ...translatedStories, summaryStory]
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const uniqueStories = Array.from(new Set(stories)).slice(0, MAX_TELEGRAM_STORIES);
+
+  while (uniqueStories.length < MAX_TELEGRAM_STORIES) {
+    const next = uniqueStories.length + 1;
+    uniqueStories.push(`เปิด DailyHub เพื่อดูรายละเอียดเรื่องที่ ${next} พร้อมแหล่งข้อมูลเต็มของหัวข้อนี้`);
+  }
+
+  return uniqueStories.map((item, index) => `เรื่องที่ ${index + 1}: ${truncate(item, 260)}`).join("\n");
+}
+
 function getTranslationMode(run: TaskRun) {
   const mode = run.translation?.mode;
   if (mode === "ai") return "แปลไทยด้วย AI";
@@ -197,30 +245,26 @@ function buildMainTelegramMessage(task: ScheduledTask, run: TaskRun) {
   const topicMeta = getTaskTopicMeta(task);
   const translatedAt = translation?.translatedAt ?? run.translatedAt ?? new Date().toISOString();
   const title = thaiTelegramText(translation?.translatedTitle ?? run.gptOutput.title, `${topicMeta.label} จาก DailyHub`, 180);
-  const summary = thaiTelegramText(
-    translation?.translatedSummary ?? run.translatedContent ?? run.gptOutput.summary,
-    "DailyHub แปลและสรุปหัวข้อนี้เป็นภาษาไทยแล้ว เปิดเว็บเพื่ออ่านรายละเอียดเต็ม",
-    520,
-  );
   const stats = getDataStats(run);
   const sources = formatSourceList(stats, task);
+  const fullDataUrl = getTaskFullDataUrl(run);
 
   return [
     `${topicMeta.emoji} ${TELEGRAM_BRAND_NAME} | ${topicMeta.label}`,
     `หัวข้อ: ${truncate(title, 180)}`,
     `ประเภทงาน: ${topicMeta.emoji} ${topicMeta.shortLabel}`,
     "",
-    "สรุปสั้น:",
-    truncate(summary, 520),
+    "📋 สรุปสั้น",
+    getTelegramStories(task, run),
     "",
-    "ประเด็นสำคัญ:",
+    "⭐ ประเด็นสำคัญ",
     getThaiBullets(run),
     "",
-    "ข้อมูลเต็ม:",
-    `- แหล่งข้อมูล: ${sources}`,
-    `- จำนวนแหล่งข้อมูล: ${stats.sourceCount}`,
-    `- จำนวนรายการที่เก็บไว้บนเว็บ: ${stats.itemCount}`,
-    "- อ่านข้อมูลเต็มได้ที่หน้า Data Library บนเว็บ",
+    "🔗 แหล่งข้อมูล",
+    sources,
+    "",
+    "🌐 ข้อมูลเต็ม",
+    fullDataUrl,
     "",
     `โหมดแปล: ${getTranslationMode(run)}`,
     `ความสำคัญ: ${run.priorityScore}/100`,

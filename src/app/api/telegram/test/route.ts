@@ -57,7 +57,7 @@ async function handleTelegramTest(request: Request, message: string | null) {
 
   const telegramMode = getTelegramModeStatus();
   const telegramResult = await sendTelegramTestMessage(message || "DailyHub Telegram test completed");
-  const ok = telegramResult.status === "sent";
+  const ok = telegramResult.status === "sent" || telegramResult.status.startsWith("mock_sent");
 
   if (!ok) {
     return errorResponse(
@@ -69,6 +69,8 @@ async function handleTelegramTest(request: Request, message: string | null) {
 
   return successResponse({
     success: true,
+    delivered: telegramResult.status === "sent",
+    simulated: telegramResult.status !== "sent",
     telegramMode,
     telegramResult,
     checkedAt: new Date().toISOString(),

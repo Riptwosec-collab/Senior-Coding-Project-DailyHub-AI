@@ -14,16 +14,17 @@ type BatchId = "one" | "two" | "all";
 type TaskSeed = { key: string; label: string; name: string; type: ScheduledTask["type"]; scheduleType: ScheduledTask["scheduleType"]; cronExpression: string; time: string | null; dataSources: string[]; gptActions: string[]; minPriorityScore: number };
 
 const DEFAULT_TASKS: TaskSeed[] = [
-  { key: "global-product-radar", label: "สินค้าเทคโนโลยี/นวัตกรรมทั่วโลก", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor", scheduleType: "Hourly", cronExpression: "0 * * * *", time: null, dataSources: ["Global Innovation Product Radar"], gptActions: ["Analyze Priority", "Generate Caption", "Recommend Action"], minPriorityScore: 70 },
+  { key: "daily-brief", label: "Morning Daily Brief", name: "Morning Daily Brief", type: "Daily Brief", scheduleType: "Daily", cronExpression: "0 8 * * *", time: "08:00", dataSources: ["NewsData.io", "Weather", "Market", "Email", "Scheduler"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 70 },
+  { key: "global-product-radar", label: "Global Innovation Product Radar", name: "สินค้าใหม่/น่าสนใจทั่วโลก", type: "Sale Monitor", scheduleType: "Hourly", cronExpression: "0 * * * *", time: null, dataSources: ["Global Innovation Product Radar"], gptActions: ["Analyze Priority", "Generate Caption", "Recommend Action"], minPriorityScore: 70 },
   { key: "us-stock-news", label: "US Stock News", name: "US Stock News", type: "US Stock News", scheduleType: "Daily", cronExpression: "0 7 * * 1-5", time: "07:00", dataSources: ["US Stock News"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 60 },
   { key: "email-digest", label: "Daily Email Digest", name: "Daily Email Digest", type: "Email Monitor", scheduleType: "Daily", cronExpression: "0 18 * * *", time: "18:00", dataSources: ["Gmail Daily Digest"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 50 },
   { key: "concert-alerts", label: "Thailand Concert Alerts", name: "Thailand Concert Alerts", type: "Concert Alerts", scheduleType: "Daily", cronExpression: "0 20 * * *", time: "20:00", dataSources: ["Concert API Thailand Only"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 75 },
-  { key: "football-recap", label: "Football News Hub", name: "Football Recap Nightly", type: "World Cup Recap", scheduleType: "Daily", cronExpression: "0 23 * * *", time: "23:00", dataSources: ["Football News Hub"], gptActions: ["Summarize", "Generate Caption", "Recommend Action"], minPriorityScore: 65 },
-  { key: "weekend-long-read", label: "Weekend Long Read Picker", name: "Weekend Long Read Picker", type: "Weekend Long Read", scheduleType: "Weekly", cronExpression: "0 10 * * 6", time: "10:00", dataSources: ["News", "Weekend Long Read"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
+  { key: "football-recap", label: "Football Recap Nightly", name: "Football Recap Nightly", type: "World Cup Recap", scheduleType: "Daily", cronExpression: "0 23 * * *", time: "23:00", dataSources: ["Football News Hub"], gptActions: ["Summarize", "Generate Caption", "Recommend Action"], minPriorityScore: 65 },
+  { key: "lifestyle-ideas", label: "Lifestyle Ideas", name: "Lifestyle Ideas", type: "Lifestyle Ideas", scheduleType: "Weekly", cronExpression: "0 10 * * 6", time: "10:00", dataSources: ["Lifestyle", "Restaurants", "Cafe", "Weekend Ideas"], gptActions: ["Summarize", "Analyze Priority", "Recommend Action"], minPriorityScore: 55 },
 ];
 
 const BATCH_ONE_KEYS = ["daily-brief", "global-product-radar", "us-stock-news", "email-digest"];
-const BATCH_TWO_KEYS = ["concert-alerts", "football-recap", "weekend-long-read"];
+const BATCH_TWO_KEYS = ["concert-alerts", "football-recap", "lifestyle-ideas"];
 
 function getKeys(batch: BatchId) { if (batch === "one") return BATCH_ONE_KEYS; if (batch === "two") return BATCH_TWO_KEYS; return [...BATCH_ONE_KEYS, ...BATCH_TWO_KEYS]; }
 function getSeeds(batch: BatchId) { const keys = new Set(getKeys(batch)); return DEFAULT_TASKS.filter((task) => keys.has(task.key)); }
@@ -123,11 +124,7 @@ function buildPublicDemoRun(task: ScheduledTask, seed: TaskSeed): TaskRun {
     status: "success",
     startedAt: now,
     finishedAt: now,
-    rawInput: {
-      source: "DailyHub public demo",
-      topic: seed.label,
-      dataSources: seed.dataSources,
-    },
+    rawInput: { source: "DailyHub public demo", topic: seed.label, dataSources: seed.dataSources },
     gptPrompt: `Send DailyHub public demo Telegram batch for ${seed.name}`,
     gptOutput: {
       title: seed.name,
@@ -161,15 +158,7 @@ async function runPublicDemoBatch(batch: BatchId) {
       const telegramResult = await sendTelegramMessage({ task, run });
       if (isSent(telegramResult.status)) sentCount += 1;
       if (telegramResult.status.includes("failed")) failedCount += 1;
-      results.push({
-        taskId: task.id,
-        taskName: task.name,
-        taskType: task.type,
-        status: "success",
-        telegramStatus: telegramResult.status,
-        priorityScore: run.priorityScore,
-        runId: run.id,
-      });
+      results.push({ taskId: task.id, taskName: task.name, taskType: task.type, status: "success", telegramStatus: telegramResult.status, priorityScore: run.priorityScore, runId: run.id });
     } catch (error) {
       failedCount += 1;
       results.push({ taskId: null, taskName: seed.name, taskType: seed.type, status: "failed", telegramStatus: "failed_public_demo_error", priorityScore: null, runId: null, error: error instanceof Error ? error.message : String(error) });

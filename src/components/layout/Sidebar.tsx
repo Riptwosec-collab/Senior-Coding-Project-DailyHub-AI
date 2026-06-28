@@ -14,7 +14,7 @@ const navItems: NavItem[] = [
   { href: "/dashboard", key: "nav_dashboard", icon: "D" },
   { href: "/daily", key: "nav_daily", icon: "DY" },
   { href: "/concerts", key: "nav_concerts", icon: "🎤" },
-  { href: "/data-library", key: "nav_data_library", icon: "DB" },
+  { href: "/movies", key: "nav_movies", icon: "🎬" },
   { href: "/scheduled-tasks", key: "nav_scheduled_tasks", icon: "T" },
   { href: "/scheduled-tasks/create", key: "nav_create_task", icon: "+" },
   { href: "/templates", key: "nav_templates", icon: "TP" },

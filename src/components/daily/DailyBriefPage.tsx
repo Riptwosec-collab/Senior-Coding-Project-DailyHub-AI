@@ -257,30 +257,30 @@ function DailyBriefHeader({ search, setSearch, onRefresh, onSummarize, onSendAll
 }) {
   const text = copy[lang];
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-cyan-300/20 bg-slate-950/55 p-5 shadow-2xl shadow-cyan-950/30 sm:p-7">
-      <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-28 left-12 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
-      <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-        <div className="max-w-4xl">
-          <div className="flex flex-wrap gap-2">
-            <Badge tone="blue">📰 {text.badgeHub}</Badge>
-            <Badge tone="purple">{text.badgeNews}</Badge>
-            <Badge tone="green">{text.badgeTelegram}</Badge>
+    <section className="relative overflow-hidden rounded-3xl border border-cyan-300/18 bg-slate-950/35 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(59,130,246,0.20),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(124,58,237,0.18),transparent_24%)]" />
+      <div className="relative grid gap-4 xl:grid-cols-[minmax(0,1fr)_39rem] xl:items-start">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">{text.title}</h1>
+          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{text.subtitle}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Badge tone="blue">✦ {text.badgeNews}</Badge>
+            <Badge tone="purple">{text.badgeTelegram}</Badge>
+            <Badge tone="green">{text.badgeHub}</Badge>
           </div>
-          <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-5xl">{text.title}</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">{text.subtitle}</p>
         </div>
-        <div className="flex w-full flex-col gap-3 xl:w-[34rem]">
-          <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 shadow-inner shadow-black/20">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <label className="flex min-h-12 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.07] px-4 shadow-inner shadow-black/20">
             <span className="text-slate-400">⌕</span>
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.searchPlaceholder} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-5">
-            <Button disabled={loading} onClick={onRefresh}>{loading ? text.refreshing : text.refresh}</Button>
-            <Button disabled={loading} variant="secondary" onClick={onSummarize}>{text.summarize}</Button>
-            <Button disabled={sending} variant="secondary" onClick={onSendCategory}>{sending ? text.sending : text.sendCategory}</Button>
-            <Button disabled={sending} variant="secondary" onClick={onSendAll}>{sending ? text.sending : text.sendAll}</Button>
-            <a href="#daily-brief-scheduler" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] px-4 py-2.5 text-sm font-bold text-white transition hover:border-cyan-200/30 hover:bg-white/[0.11]">{text.schedule}</a>
+            <span className="hidden rounded-lg border border-white/10 px-2 py-1 text-xs font-black text-slate-500 sm:inline">⌘K</span>
+          </label>
+          <Button disabled={sending} onClick={onSendAll}>{sending ? text.sending : `✈ ${text.sendAll}`}</Button>
+          <div className="flex flex-wrap gap-2 lg:col-span-2 lg:justify-end">
+            <Button disabled={loading} size="sm" variant="secondary" onClick={onRefresh}>{loading ? text.refreshing : text.refresh}</Button>
+            <Button disabled={loading} size="sm" variant="outline" onClick={onSummarize}>{text.summarize}</Button>
+            <Button disabled={sending} size="sm" variant="outline" onClick={onSendCategory}>{sending ? text.sending : text.sendCategory}</Button>
+            <a href="#daily-brief-scheduler" className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.07] px-4 py-2 text-xs font-bold text-white transition hover:border-cyan-200/30 hover:bg-white/[0.11]">{text.schedule}</a>
           </div>
         </div>
       </div>
@@ -388,6 +388,68 @@ function SingleNewsTelegramButton({ item, onSent, lang }: { item: DailyBriefItem
   return <Button size="sm" variant="secondary" disabled={sending} onClick={send}>{sending ? text.sendingNews : text.sendNews}</Button>;
 }
 
+function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: boolean }) {
+  const detail = getDailyBriefTopicDetail(item.category);
+  return (
+    <div className={cn("relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-950/60 shadow-[0_0_30px_rgba(37,99,235,0.18)]", large ? "min-h-64" : "min-h-28")}>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(56,189,248,0.36),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(124,58,237,0.32),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
+      <div className="relative flex h-full flex-col justify-end p-5">
+        <span className={cn("drop-shadow-[0_0_22px_rgba(34,211,238,0.65)]", large ? "text-7xl" : "text-4xl")}>{detail.icon}</span>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="rounded-lg bg-slate-950/70 px-2.5 py-1 text-xs font-black text-cyan-100">#{detail.labelEn.replace(/\s+/g, "")}</span>
+          <span className="rounded-lg bg-slate-950/70 px-2.5 py-1 text-xs font-black text-violet-100">P{item.priorityScore}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturedStoryCard({ item, onRead, onSent, onSave, lang }: {
+  item: DailyBriefItem;
+  onRead: (item: DailyBriefItem) => void;
+  onSent: (message: string) => void;
+  onSave: (item: DailyBriefItem) => void;
+  lang: Lang;
+}) {
+  const text = copy[lang];
+  return (
+    <Card className="overflow-hidden border-cyan-300/25 p-0">
+      <div className="grid gap-0 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="p-4">
+          <StoryVisual item={item} large />
+        </div>
+        <div className="flex min-w-0 flex-col p-5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="purple">{categoryLabel(item.category, lang)}</Badge>
+            <NewsSourceBadge item={item} lang={lang} />
+            <span className="ml-auto rounded-xl border border-cyan-300/25 bg-cyan-300/12 px-4 py-2 text-xl font-black text-cyan-100">{item.priorityScore}</span>
+          </div>
+          <h2 className="mt-4 max-w-3xl text-2xl font-black leading-tight text-white sm:text-3xl">{itemTitle(item, lang)}</h2>
+          <p className="mt-2 text-xs font-semibold text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
+          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_16rem]">
+            <div>
+              <p className="text-sm font-semibold leading-7 text-slate-300">{itemSummary(item, lang)}</p>
+              <div className="mt-3 space-y-1 text-sm leading-6 text-slate-300">
+                {itemBullets(item, lang).slice(0, 3).map((point) => <p key={point}>• {point}</p>)}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-4 text-sm leading-6 text-amber-50">
+              <p className="font-black text-amber-100">💡 {text.why}</p>
+              <p className="mt-2">{lang === "th" ? item.whyItMatters : item.impact || item.whyItMatters}</p>
+            </div>
+          </div>
+          <div className="mt-auto flex flex-wrap justify-end gap-2 pt-5">
+            <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>
+            <SingleNewsTelegramButton item={item} onSent={onSent} lang={lang} />
+            <Button size="sm" onClick={() => onRead(item)}>{text.readFull}</Button>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
   item: DailyBriefItem;
   onRead: (item: DailyBriefItem) => void;
@@ -398,32 +460,23 @@ function NewsCard({ item, onRead, onSent, onSave, onHide, lang }: {
 }) {
   const text = copy[lang];
   return (
-    <Card className="group flex min-h-[25rem] flex-col p-5 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="blue">{categoryLabel(item.category, lang)}</Badge>
-        <NewsSourceBadge item={item} lang={lang} />
-        <NewsStatusBadge item={item} lang={lang} />
-      </div>
-      <div className="mt-4 flex items-start justify-between gap-3">
-        <h3 className="line-clamp-3 text-xl font-black leading-8 text-white">{itemTitle(item, lang)}</h3>
-        <span className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm font-black text-cyan-100">{item.priorityScore}</span>
-      </div>
-      <p className="mt-2 text-xs font-semibold text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
-      <p className="mt-4 line-clamp-3 text-sm leading-7 text-slate-300">{itemSummary(item, lang)}</p>
-      <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
-        {itemBullets(item, lang).slice(0, 3).map((point) => <p key={point}>• {point}</p>)}
-      </div>
-      <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-xs leading-6 text-slate-400">
-        <span className="font-bold text-cyan-200">{text.why}:</span> {lang === "th" ? item.whyItMatters : item.impact || item.whyItMatters}
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {item.tags.map((tag) => <span key={tag} className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs font-bold text-slate-300">#{tag}</span>)}
-      </div>
-      <div className="mt-auto flex flex-wrap gap-2 pt-5">
-        <Button size="sm" onClick={() => onRead(item)}>{text.readFull}</Button>
-        <SingleNewsTelegramButton item={item} onSent={onSent} lang={lang} />
-        <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>
-        <Button size="sm" variant="ghost" onClick={() => onHide(item)}>{text.hide}</Button>
+    <Card className="group grid gap-4 p-4 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045] md:grid-cols-[10rem_minmax(0,1fr)]">
+      <StoryVisual item={item} />
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="blue">{categoryLabel(item.category, lang)}</Badge>
+          <NewsStatusBadge item={item} lang={lang} />
+          <span className="ml-auto rounded-xl border border-violet-300/20 bg-violet-300/10 px-3 py-1.5 text-sm font-black text-violet-100">{item.priorityScore}</span>
+        </div>
+        <h3 className="mt-3 line-clamp-2 text-lg font-black leading-7 text-white">{itemTitle(item, lang)}</h3>
+        <p className="mt-1 text-xs font-semibold text-slate-500">{item.sourceName} · {formatTime(item.publishedAt, lang)}</p>
+        <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-300">{itemSummary(item, lang)}</p>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => onHide(item)}>{text.hide}</Button>
+          <Button size="sm" variant="outline" onClick={() => onSave(item)}>{item.isSaved ? text.unsave : text.save}</Button>
+          <SingleNewsTelegramButton item={item} onSent={onSent} lang={lang} />
+          <Button size="sm" onClick={() => onRead(item)}>{text.readFull}</Button>
+        </div>
       </div>
     </Card>
   );
@@ -434,17 +487,15 @@ function DailyTopStories({ summary, lang }: { summary: DailyBriefSummary; lang: 
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <Badge tone="purple">🔥 Top 5</Badge>
-          <h2 className="mt-3 text-xl font-black text-white">{text.topStories}</h2>
-        </div>
-        <span className="text-xs font-bold text-slate-500">{summary.totalItems} {text.items}</span>
+        <h2 className="text-lg font-black text-white">🔥 Top 5 {text.topStories}</h2>
+        <span className="text-xs font-bold text-cyan-200">{text.readFull}</span>
       </div>
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-2">
         {summary.topStories.map((item, index) => (
-          <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
-            <p className="text-xs font-black text-cyan-200">#{index + 1} · Priority {item.priorityScore}</p>
-            <p className="mt-1 line-clamp-2 text-sm font-bold leading-6 text-white">{itemTitle(item, lang)}</p>
+          <div key={item.id} className="grid grid-cols-[1.8rem_minmax(0,1fr)_3rem] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] p-2">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-cyan-400/20 text-xs font-black text-cyan-100">{index + 1}</span>
+            <p className="line-clamp-2 text-xs font-bold leading-5 text-white">{itemTitle(item, lang)}</p>
+            <span className="justify-self-end rounded-full bg-cyan-300/12 px-2 py-1 text-xs font-black text-cyan-100">{item.priorityScore}</span>
           </div>
         ))}
       </div>
@@ -550,10 +601,13 @@ export function DailyBriefPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<DailyBriefItem | null>(null);
+  const [readerItem, setReaderItem] = useState<DailyBriefItem | null>(null);
   const [sendMessage, setSendMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   const visibleItems = data?.items.filter((item) => !item.isHidden) || [];
+  const featuredItem = selected && visibleItems.some((item) => item.id === selected.id) ? selected : visibleItems[0] || null;
+  const feedItems = featuredItem ? visibleItems.filter((item) => item.id !== featuredItem.id) : visibleItems;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -598,6 +652,7 @@ export function DailyBriefPage() {
   function updateItem(id: string, patch: Partial<DailyBriefItem>) {
     setData((current) => current ? { ...current, items: current.items.map((item) => item.id === id ? { ...item, ...patch } : item) } : current);
     setSelected((current) => current?.id === id ? { ...current, ...patch } : current);
+    setReaderItem((current) => current?.id === id ? { ...current, ...patch } : current);
   }
 
   function saveItem(item: DailyBriefItem) {
@@ -609,6 +664,12 @@ export function DailyBriefPage() {
     updateItem(item.id, { isHidden: true });
     setSendMessage(text.hiddenMessage);
     if (selected?.id === item.id) setSelected(visibleItems.find((candidate) => candidate.id !== item.id) || null);
+    if (readerItem?.id === item.id) setReaderItem(null);
+  }
+
+  function openReader(item: DailyBriefItem) {
+    setSelected(item);
+    setReaderItem(item);
   }
 
   useEffect(() => {
@@ -637,22 +698,33 @@ export function DailyBriefPage() {
       {!loading && !error && data && (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <main className="space-y-6">
-            <ArticleReaderPanel item={selected} onSent={setSendMessage} onSave={saveItem} lang={lang} />
             {visibleItems.length === 0 ? <EmptyState lang={lang} /> : (
-              <div className="grid gap-4 lg:grid-cols-2">
-                {visibleItems.map((item) => (
+              <>
+                {featuredItem && (
+                  <FeaturedStoryCard
+                    item={featuredItem}
+                    onRead={openReader}
+                    onSent={setSendMessage}
+                    onSave={saveItem}
+                    lang={lang}
+                  />
+                )}
+                <div className="space-y-3">
+                  {feedItems.map((item) => (
                   <NewsCard
                     key={item.id}
                     item={item}
-                    onRead={setSelected}
+                    onRead={openReader}
                     onSent={setSendMessage}
                     onSave={saveItem}
                     onHide={hideItem}
                     lang={lang}
                   />
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
+            <ArticleReaderPanel item={readerItem} onSent={setSendMessage} onSave={saveItem} lang={lang} />
           </main>
           <NewsSummaryPanel data={data} message={sendMessage} lang={lang} />
         </div>

@@ -49,6 +49,7 @@ type GoogleNewsRssItem = {
   pubDate?: string;
   sourceName: string;
   sourceUrl?: string;
+  imageUrl?: string;
 };
 
 const REAL_NEWS_TARGET_COUNT = Math.max(10, Number(process.env.NEWS_ITEMS_PER_CATEGORY || "10"));
@@ -134,6 +135,22 @@ function getXmlTagAttribute(block: string, tag: string, attribute: string) {
   return attrMatch ? decodeXml(attrMatch[1]).trim() : "";
 }
 
+function normalizeRssImageUrl(value: string) {
+  const decoded = decodeXml(value).trim();
+  if (!decoded) return "";
+  if (decoded.startsWith("//")) return `https:${decoded}`;
+  if (/^https?:\/\//i.test(decoded)) return decoded;
+  return "";
+}
+
+function extractRssImage(block: string) {
+  const decodedBlock = decodeXml(block);
+  const imageFromTag = decodedBlock.match(/<img\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/i)?.[1];
+  if (imageFromTag) return normalizeRssImageUrl(imageFromTag);
+  const mediaContent = getXmlTagAttribute(block, "media:content", "url") || getXmlTagAttribute(block, "media:thumbnail", "url");
+  return normalizeRssImageUrl(mediaContent);
+}
+
 function parseGoogleNewsRss(xml: string): GoogleNewsRssItem[] {
   return Array.from(xml.matchAll(/<item\b[\s\S]*?<\/item>/gi))
     .map((match) => {
@@ -144,7 +161,8 @@ function parseGoogleNewsRss(xml: string): GoogleNewsRssItem[] {
       const pubDate = stripHtml(getXmlTag(block, "pubDate"));
       const sourceName = stripHtml(getXmlTag(block, "source")) || "Google News";
       const sourceUrl = getXmlTagAttribute(block, "source", "url");
-      return { title, link, description, pubDate, sourceName, sourceUrl };
+      const imageUrl = extractRssImage(block);
+      return { title, link, description, pubDate, sourceName, sourceUrl, imageUrl };
     })
     .filter((item) => item.title && item.link);
 }
@@ -245,6 +263,7 @@ async function mapGoogleNewsItem(item: GoogleNewsRssItem, category: DailyBriefCa
     tags: [category, item.sourceName, "Google News"].filter(Boolean).slice(0, 5),
     sourceName: item.sourceName,
     sourceUrl,
+    imageUrl: item.imageUrl || item.sourceUrl || undefined,
     publishedAt,
     language: hasThaiText(`${item.title} ${rawDescription}`) ? "th" : "en",
     priorityScore: scoreGoogleNewsItem(category, item, index),

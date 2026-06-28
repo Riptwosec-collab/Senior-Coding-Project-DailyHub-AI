@@ -32,11 +32,11 @@ html[data-theme="cream"] {
   --nimbus-violet: 126, 92, 54;
   --nimbus-emerald: 92, 116, 67;
   --nimbus-rose: 177, 72, 77;
-  --nimbus-depth-shadow: 0 18px 42px rgba(83, 61, 43, 0.14), 0 1px 0 rgba(255, 255, 255, 0.82) inset;
-  --panel-bg: rgba(255, 246, 234, 0.96);
-  --panel-border: rgba(184, 138, 90, 0.30);
-  --sidebar-bg: rgba(255, 246, 234, 0.97);
-  --topbar-bg: rgba(255, 246, 234, 0.94);
+  --nimbus-depth-shadow: 0 16px 36px rgba(83, 61, 43, 0.11), 0 1px 0 rgba(255, 255, 255, 0.70) inset;
+  --panel-bg: rgba(250, 239, 224, 0.96);
+  --panel-border: rgba(160, 113, 70, 0.30);
+  --sidebar-bg: rgba(250, 239, 224, 0.97);
+  --topbar-bg: rgba(250, 239, 224, 0.94);
   --muted-text: #6B5A4A;
 }
 
@@ -51,11 +51,11 @@ html[data-theme="sanook"] {
   --nimbus-violet: 255, 124, 36;
   --nimbus-emerald: 22, 133, 91;
   --nimbus-rose: 220, 38, 38;
-  --nimbus-depth-shadow: 0 12px 32px rgba(28, 38, 57, 0.10), 0 1px 0 rgba(255, 255, 255, 0.92) inset;
-  --panel-bg: rgba(255, 255, 255, 0.96);
-  --panel-border: rgba(28, 38, 57, 0.12);
-  --sidebar-bg: rgba(255, 255, 255, 0.98);
-  --topbar-bg: rgba(255, 255, 255, 0.94);
+  --nimbus-depth-shadow: 0 12px 28px rgba(28, 38, 57, 0.085), 0 1px 0 rgba(255, 255, 255, 0.84) inset;
+  --panel-bg: rgba(248, 250, 252, 0.96);
+  --panel-border: rgba(28, 38, 57, 0.13);
+  --sidebar-bg: rgba(248, 250, 252, 0.98);
+  --topbar-bg: rgba(248, 250, 252, 0.94);
   --muted-text: #5f6673;
 }
 
@@ -209,8 +209,9 @@ textarea {
 .nimbus-card-3d {
   position: relative;
   transform-style: preserve-3d;
+  will-change: transform, box-shadow;
   transition:
-    transform 180ms ease,
+    transform 220ms cubic-bezier(.2,.8,.2,1),
     border-color 260ms ease,
     box-shadow 260ms ease,
     background 260ms ease;
@@ -234,10 +235,18 @@ textarea {
 }
 
 .nimbus-card-3d:hover {
-  transform: translateY(-2px);
+  transform: perspective(1200px) translateY(-3px) rotateX(0.7deg) rotateY(-0.45deg);
   border-color: rgba(103, 232, 249, 0.28);
   background: rgba(15, 23, 42, 0.78);
   box-shadow: 0 24px 70px rgba(2, 6, 23, 0.52), 0 0 0 1px rgba(34, 211, 238, 0.035) inset;
+}
+
+.nimbus-card-3d:active {
+  transform: perspective(1200px) translateY(-1px) scale(0.997);
+}
+
+.nimbus-card-3d:hover::before {
+  opacity: 0.92;
 }
 
 .nimbus-button-3d {
@@ -277,9 +286,9 @@ textarea {
 
 html[data-theme="cream"] body {
   background:
-    radial-gradient(circle at 12% 8%, rgba(184, 138, 90, 0.18), transparent 28%),
-    radial-gradient(circle at 84% 14%, rgba(126, 92, 54, 0.12), transparent 30%),
-    linear-gradient(180deg, #F7F0E6 0%, #FFF6EA 48%, #E8DCCB 100%);
+    radial-gradient(circle at 12% 8%, rgba(184, 138, 90, 0.10), transparent 28%),
+    radial-gradient(circle at 84% 14%, rgba(126, 92, 54, 0.07), transparent 30%),
+    linear-gradient(180deg, #F3E8D8 0%, #FAEFDF 48%, #E4D5C0 100%);
   color: var(--foreground);
 }
 
@@ -295,10 +304,10 @@ html[data-theme="cream"] body::after {
 
 html[data-theme="cream"] .app-backdrop-glow {
   background:
-    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(184, 138, 90, 0.12), transparent 17rem),
-    radial-gradient(circle at 16% 12%, rgba(184, 138, 90, 0.16), transparent 30%),
-    radial-gradient(circle at 84% 18%, rgba(126, 92, 54, 0.10), transparent 34%),
-    linear-gradient(180deg, rgba(255, 246, 234, 0.70), rgba(232, 220, 203, 0.56));
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(184, 138, 90, 0.075), transparent 16rem),
+    radial-gradient(circle at 16% 12%, rgba(184, 138, 90, 0.10), transparent 30%),
+    radial-gradient(circle at 84% 18%, rgba(126, 92, 54, 0.07), transparent 34%),
+    linear-gradient(180deg, rgba(250, 239, 224, 0.70), rgba(228, 213, 192, 0.56));
 }
 
 html[data-theme="cream"] .app-backdrop-grid {
@@ -319,8 +328,9 @@ html[data-theme="cream"] .app-surface {
 }
 
 html[data-theme="cream"] .nimbus-card-3d:hover {
-  background: rgba(255, 246, 234, 0.96);
+  background: rgba(250, 239, 224, 0.96);
   border-color: rgba(184, 138, 90, 0.36);
+  box-shadow: 0 18px 42px rgba(83, 61, 43, 0.14), 0 0 0 1px rgba(184, 138, 90, 0.04) inset;
 }
 
 html[data-theme="cream"] .nimbus-button-3d {
@@ -529,7 +539,7 @@ html[data-theme="cream"] ::-webkit-scrollbar-track {
 
 html[data-theme="sanook"] body {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(244, 246, 250, 0.98) 54%, #eef2f7 100%);
+    linear-gradient(180deg, rgba(249, 250, 252, 0.96) 0%, rgba(241, 244, 248, 0.98) 54%, #e9eef5 100%);
   color: var(--foreground);
 }
 
@@ -546,10 +556,10 @@ html[data-theme="sanook"] body::after {
 
 html[data-theme="sanook"] .app-backdrop-glow {
   background:
-    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(237, 45, 41, 0.08), transparent 17rem),
-    radial-gradient(circle at 12% 10%, rgba(237, 45, 41, 0.10), transparent 28%),
-    radial-gradient(circle at 88% 18%, rgba(255, 124, 36, 0.12), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.76), rgba(238, 242, 247, 0.66));
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(237, 45, 41, 0.055), transparent 16rem),
+    radial-gradient(circle at 12% 10%, rgba(237, 45, 41, 0.075), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(255, 124, 36, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(249, 250, 252, 0.76), rgba(233, 238, 245, 0.66));
 }
 
 html[data-theme="sanook"] .app-backdrop-grid {
@@ -801,6 +811,100 @@ html[data-theme="sanook"] ::-webkit-scrollbar-thumb {
 
 .concert-page .concert-note {
   color: #cbd5e1 !important;
+}
+
+html[data-theme="cream"] .concert-page {
+  background: rgba(250, 239, 224, 0.94) !important;
+  border-color: rgba(160, 113, 70, 0.28) !important;
+  color: #2E2A26 !important;
+  box-shadow: 0 18px 40px rgba(83, 61, 43, 0.12);
+}
+
+html[data-theme="cream"] .concert-page > div:first-child {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(184, 138, 90, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 246, 234, 0.98), rgba(232, 220, 203, 0.72)) !important;
+}
+
+html[data-theme="cream"] .concert-page .concert-card,
+html[data-theme="cream"] .concert-page .concert-mini-card,
+html[data-theme="cream"] .concert-page .concert-note,
+html[data-theme="cream"] .concert-page [class*="bg-slate-950"] {
+  background: rgba(255, 246, 234, 0.86) !important;
+  border-color: rgba(184, 138, 90, 0.24) !important;
+  box-shadow: 0 14px 30px rgba(83, 61, 43, 0.08);
+}
+
+html[data-theme="cream"] .concert-page .concert-title,
+html[data-theme="cream"] .concert-page .text-white,
+html[data-theme="cream"] .concert-page .text-slate-100 {
+  color: #2E2A26 !important;
+}
+
+html[data-theme="cream"] .concert-page .concert-muted,
+html[data-theme="cream"] .concert-page .text-slate-300,
+html[data-theme="cream"] .concert-page .text-slate-400 {
+  color: #5E4B3B !important;
+}
+
+html[data-theme="cream"] .concert-page .concert-accent,
+html[data-theme="cream"] .concert-page .text-fuchsia-100,
+html[data-theme="cream"] .concert-page .text-fuchsia-200 {
+  color: #8A633C !important;
+}
+
+html[data-theme="cream"] .concert-page .concert-chip,
+html[data-theme="cream"] .concert-page .concert-button {
+  background: rgba(232, 220, 203, 0.68) !important;
+  border-color: rgba(184, 138, 90, 0.28) !important;
+  color: #2E2A26 !important;
+}
+
+html[data-theme="sanook"] .concert-page {
+  background: rgba(248, 250, 252, 0.95) !important;
+  border-color: rgba(28, 38, 57, 0.12) !important;
+  color: #202124 !important;
+  box-shadow: 0 16px 34px rgba(28, 38, 57, 0.10);
+}
+
+html[data-theme="sanook"] .concert-page > div:first-child {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(237, 45, 41, 0.10), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(233, 238, 245, 0.76)) !important;
+}
+
+html[data-theme="sanook"] .concert-page .concert-card,
+html[data-theme="sanook"] .concert-page .concert-mini-card,
+html[data-theme="sanook"] .concert-page .concert-note,
+html[data-theme="sanook"] .concert-page [class*="bg-slate-950"] {
+  background: rgba(255, 255, 255, 0.90) !important;
+  border-color: rgba(28, 38, 57, 0.12) !important;
+  box-shadow: 0 12px 28px rgba(28, 38, 57, 0.08);
+}
+
+html[data-theme="sanook"] .concert-page .concert-title,
+html[data-theme="sanook"] .concert-page .text-white,
+html[data-theme="sanook"] .concert-page .text-slate-100 {
+  color: #202124 !important;
+}
+
+html[data-theme="sanook"] .concert-page .concert-muted,
+html[data-theme="sanook"] .concert-page .text-slate-300,
+html[data-theme="sanook"] .concert-page .text-slate-400 {
+  color: #4d5562 !important;
+}
+
+html[data-theme="sanook"] .concert-page .concert-accent,
+html[data-theme="sanook"] .concert-page .text-fuchsia-100,
+html[data-theme="sanook"] .concert-page .text-fuchsia-200 {
+  color: #d92d20 !important;
+}
+
+html[data-theme="sanook"] .concert-page .concert-chip,
+html[data-theme="sanook"] .concert-page .concert-button {
+  background: rgba(244, 246, 250, 0.88) !important;
+  border-color: rgba(237, 45, 41, 0.18) !important;
+  color: #202124 !important;
 }
 
 .section-title {

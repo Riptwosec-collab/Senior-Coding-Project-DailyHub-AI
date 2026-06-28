@@ -300,6 +300,7 @@ function eventImageSrc(event: ExpoEvent) {
     url: event.sourceUrl,
     title: event.imageTitle,
     kind: "event",
+    strict: "1",
   });
   return `/api/poster-image?${params.toString()}`;
 }
@@ -335,7 +336,13 @@ function EventArtwork({ event }: { event: ExpoEvent }) {
           />
         </>
       )}
-      {failed && <div className="absolute inset-0 bg-[radial-gradient(circle_at_38%_12%,rgba(34,197,94,0.34),transparent_30%),radial-gradient(circle_at_80%_18%,rgba(168,85,247,0.30),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.95))]" />}
+      {failed && (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_38%_12%,rgba(34,197,94,0.20),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.95))]">
+          <div className="absolute right-4 top-4 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
+            Source image unavailable
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.08),rgba(2,6,23,0.94)_100%)]" />
       <div className="absolute left-4 top-4 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-white">
         {meta.icon} {meta.labelEn}

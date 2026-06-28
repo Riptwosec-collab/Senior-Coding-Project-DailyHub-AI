@@ -155,7 +155,7 @@ function PlatformArt({ platform, items }: { platform: MoviePlatform; items: Watc
   const previewItems = items.slice(0, 3);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
   return (
-    <div className={cn("relative min-h-40 overflow-hidden rounded-2xl border p-5 shadow-[0_0_34px_rgba(168,85,247,0.22)]", meta.border)}>
+    <div className={cn("relative h-full min-h-72 overflow-hidden rounded-2xl border p-5 shadow-[0_0_34px_rgba(168,85,247,0.22)] lg:min-h-[28rem]", meta.border)}>
       <div className={cn("absolute inset-0 bg-gradient-to-br", meta.gradient)} />
       {previewItems[0] && !failed[previewItems[0].id] && (
         <Image
@@ -171,9 +171,9 @@ function PlatformArt({ platform, items }: { platform: MoviePlatform; items: Watc
         />
       )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.28),transparent_30%),linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
-      <div className="absolute right-3 top-3 flex -space-x-5">
+      <div className="absolute right-3 top-3 flex -space-x-6">
         {previewItems.map((item, index) => !failed[item.id] && (
-          <div key={item.id} className={cn("relative aspect-[2/3] w-16 overflow-hidden rounded-xl border border-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.36)]", index === 1 && "mt-5", index === 2 && "mt-10")}>
+          <div key={item.id} className={cn("relative aspect-[2/3] w-20 overflow-hidden rounded-xl border border-white/20 shadow-[0_14px_30px_rgba(0,0,0,0.36)] sm:w-24", index === 1 && "mt-8", index === 2 && "mt-16")}>
             <Image
               src={moviePosterSrc(item)}
               alt={item.title}
@@ -187,7 +187,7 @@ function PlatformArt({ platform, items }: { platform: MoviePlatform; items: Watc
           </div>
         ))}
       </div>
-      <div className="relative flex h-full min-h-32 flex-col justify-end">
+      <div className="relative flex h-full min-h-64 flex-col justify-end lg:min-h-[25rem]">
         <span className="text-5xl drop-shadow-[0_0_18px_rgba(217,70,239,0.75)]">{meta.icon}</span>
         <p className="mt-3 text-2xl font-black text-white">{meta.labelTh}</p>
         <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-fuchsia-100/75">{meta.labelEn}</p>
@@ -201,6 +201,7 @@ function moviePosterSrc(item: WatchItem) {
     query: item.posterQuery ?? item.title,
     title: item.title,
     kind: item.platform,
+    strict: "1",
   });
   return `/api/poster-image?${params.toString()}`;
 }
@@ -216,6 +217,7 @@ function MoviePoster({ item, isThai }: { item: WatchItem; isThai: boolean }) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(255,255,255,0.32),transparent_28%),linear-gradient(180deg,transparent,rgba(2,6,23,0.88))]" />
         <div className="relative flex h-full flex-col justify-end p-2">
           <span className="text-2xl" aria-hidden>{meta.icon}</span>
+          <p className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/70">Source poster unavailable</p>
           <p className="mt-1 line-clamp-3 text-[11px] font-black leading-3 text-white">{item.title}</p>
         </div>
       </div>
@@ -263,7 +265,7 @@ function PlatformSection({ platform, items, isThai }: { platform: MoviePlatform;
   const meta = platformMeta[platform];
   return (
     <section className={cn("rounded-3xl border bg-slate-950/52 p-3 shadow-[0_0_42px_rgba(37,99,235,0.18)] sm:p-4", meta.border)}>
-      <div className="grid gap-4 lg:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)]">
         <PlatformArt platform={platform} items={items} />
         {items.length ? (
           <div className="overflow-hidden rounded-2xl border border-white/12 bg-slate-950/42">

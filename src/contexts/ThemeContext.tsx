@@ -21,6 +21,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
+      const userSetTheme = localStorage.getItem("nimbusdaily_theme_user_set") === "true";
+      if (!userSetTheme) {
+        localStorage.setItem("nimbusdaily_theme", "dark");
+        setThemeState("dark");
+        return;
+      }
       const saved = localStorage.getItem("nimbusdaily_theme");
       if (saved === "dark" || saved === "cream" || saved === "sanook") setThemeState(saved);
     } catch {}
@@ -33,13 +39,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = useCallback((nextTheme: AppTheme) => {
     setThemeState(nextTheme);
-    try { localStorage.setItem("nimbusdaily_theme", nextTheme); } catch {}
+    try {
+      localStorage.setItem("nimbusdaily_theme", nextTheme);
+      localStorage.setItem("nimbusdaily_theme_user_set", "true");
+    } catch {}
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
       const nextTheme = current === "dark" ? "cream" : current === "cream" ? "sanook" : "dark";
-      try { localStorage.setItem("nimbusdaily_theme", nextTheme); } catch {}
+      try {
+        localStorage.setItem("nimbusdaily_theme", nextTheme);
+        localStorage.setItem("nimbusdaily_theme_user_set", "true");
+      } catch {}
       return nextTheme;
     });
   }, []);

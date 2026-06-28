@@ -647,6 +647,7 @@ function concertPosterSrc(event: FestivalEvent, detailUrl: string) {
     url: detailUrl,
     title: event.title,
     kind: "concert",
+    strict: "1",
   });
   return `/api/poster-image?${params.toString()}`;
 }
@@ -671,7 +672,13 @@ function Poster({ event, index, category }: { event: FestivalEvent; index: numbe
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className={cn("absolute inset-0 bg-gradient-to-br", meta.bg)} />
+        <div className={cn("absolute inset-0 bg-gradient-to-br", meta.bg)}>
+          {!event.isPlaceholder && (
+            <span className="absolute right-2 top-2 rounded-lg border border-white/10 bg-slate-950/70 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-slate-300">
+              Source image unavailable
+            </span>
+          )}
+        </div>
       )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_14%,rgba(255,255,255,0.20),transparent_26%),linear-gradient(180deg,transparent_34%,rgba(2,6,23,0.94))]" />
       <div className="absolute left-0 top-0 rounded-br-lg bg-white/18 px-3 py-1 text-sm font-black text-white">{index + 1}</div>

@@ -83,7 +83,6 @@ const copy = {
     autoSend: "ส่งอัตโนมัติ",
     time: "เวลา",
     perCategory: "ข่าวต่อหมวด",
-    lastLog: "Log ล่าสุด",
     noLog: "ยังไม่มี log",
     originalTitle: "ชื่อต้นฉบับ",
     categorySubtopics: "หัวข้อย่อย",
@@ -161,7 +160,6 @@ const copy = {
     autoSend: "Auto send",
     time: "Time",
     perCategory: "Items per category",
-    lastLog: "Last log",
     noLog: "No log yet",
     originalTitle: "Original title",
     categorySubtopics: "Subtopics",
@@ -377,6 +375,7 @@ function newsImageSrc(item: DailyBriefItem) {
     url: item.imageUrl || item.sourceUrl,
     title: itemTitle(item, "en"),
     kind: "news",
+    strict: "1",
   });
   return `/api/poster-image?${params.toString()}`;
 }
@@ -428,7 +427,13 @@ function StoryVisual({ item, large = false }: { item: DailyBriefItem; large?: bo
           />
         </>
       )}
-      {failed && <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(56,189,248,0.36),transparent_34%),radial-gradient(circle_at_80%_20%,rgba(124,58,237,0.32),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />}
+      {failed && (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(56,189,248,0.20),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
+          <div className="absolute left-4 top-4 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
+            Source image unavailable
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.10),rgba(2,6,23,0.96)_100%)]" />
       <div className="relative flex h-full flex-col justify-end p-5">
         <span className={cn("drop-shadow-[0_0_22px_rgba(34,211,238,0.65)]", large ? "text-7xl" : "text-4xl")}>{detail.icon}</span>
@@ -585,7 +590,6 @@ function DailyBriefSettings({ data, lang }: { data: DailyBriefApiResponse; lang:
 }
 
 function ScheduleBriefCard({ data, lang }: { data: DailyBriefApiResponse; lang: Lang }) {
-  const latest = data.logs[0];
   const text = copy[lang];
   return (
     <Card id="daily-brief-scheduler" className="p-5">
@@ -594,7 +598,6 @@ function ScheduleBriefCard({ data, lang }: { data: DailyBriefApiResponse; lang: 
         <div className="flex justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3"><span>{text.autoSend}</span><b className="text-white">{data.settings.autoSendTelegram ? "ON" : "OFF"}</b></div>
         <div className="flex justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3"><span>{text.time}</span><b className="text-white">{data.settings.telegramTime}</b></div>
         <div className="flex justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] p-3"><span>{text.perCategory}</span><b className="text-white">{data.settings.maxItemsPerCategory}</b></div>
-        <div className="rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-xs leading-6 text-slate-400">{text.lastLog}: {latest ? `${latest.status} · ${formatTime(latest.runAt, lang)} · ${latest.message}` : text.noLog}</div>
       </div>
     </Card>
   );

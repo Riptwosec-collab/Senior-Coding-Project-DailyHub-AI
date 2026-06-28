@@ -85,7 +85,6 @@ const LABELS: Record<Lang, Record<string, string>> = {
     resultsSubtitle: "ผลลัพธ์ล่าสุดแยกตามหมวด พร้อมสถานะ Telegram และ AI",
     notificationsSubtitle: "แจ้งเตือนสำคัญและสิ่งที่ควรดูต่อ",
     execution: "Execution Log",
-    executionTitle: "ประวัติการรันล่าสุด",
     task: "Task",
     status: "Status",
     telegram: "Telegram",
@@ -129,7 +128,6 @@ const LABELS: Record<Lang, Record<string, string>> = {
     resultsSubtitle: "Latest results grouped by topic with Telegram and AI status.",
     notificationsSubtitle: "Important alerts and items to review next.",
     execution: "Execution Log",
-    executionTitle: "Latest execution history",
     task: "Task",
     status: "Status",
     telegram: "Telegram",
@@ -494,6 +492,7 @@ function dashboardNewsImageSrc(item: DailyBriefItem) {
     url: item.imageUrl || item.sourceUrl,
     title: dailyItemTitle(item, "en"),
     kind: "news",
+    strict: "1",
   });
   return `/api/poster-image?${params.toString()}`;
 }
@@ -528,7 +527,13 @@ function DashboardNewsVisual({ item, lang, large = false }: { item: DailyBriefIt
           />
         </>
       )}
-      {failed && <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(59,130,246,0.45),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(168,85,247,0.36),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]" />}
+      {failed && (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_26%_16%,rgba(59,130,246,0.22),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.96))]">
+          <div className="absolute right-4 top-4 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-300">
+            Source image unavailable
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.06)_10%,rgba(2,6,23,0.96)_100%)]" />
       <div className="absolute left-5 top-5 rounded-xl border border-white/10 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryLabel(item.category, lang)}</div>
       <div className="relative flex h-full min-h-full flex-col justify-end p-5">
@@ -634,10 +639,9 @@ function DailyBriefDashboardSection({
   const sideStories = dailyNewsItems.slice(1, 3);
   const lowerStories = dailyNewsItems.slice(3, 9);
   const topStories = (dailyBrief?.summary.topStories.length ? dailyBrief.summary.topStories : dailyNewsItems).slice(0, 5);
-  const latestRuns = runs.slice(0, 5);
   const dateLabel = dailyBrief?.summary.date ?? new Intl.DateTimeFormat(lang === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeZone: "Asia/Bangkok" }).format(new Date());
   const activeDailyTasks = tasks.filter((task) => task.type === "Daily Brief" && task.isActive).length;
-  const failedRuns = latestRuns.filter((run) => run.status === "failed" || run.telegramStatus === "failed").length;
+  const failedRuns = runs.slice(0, 5).filter((run) => run.status === "failed" || run.telegramStatus === "failed").length;
 
   return (
     <section className="space-y-5">
@@ -766,25 +770,6 @@ function DailyBriefDashboardSection({
               ))}
             </div>
             <p className="mt-4 text-xs font-semibold text-slate-500">{lang === "th" ? "อัปเดตล่าสุด" : "Updated"} {formatNewsTime(dailyBrief?.summary.generatedAt, lang)}</p>
-          </Card>
-
-          <Card className="p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-black text-white">📨 {lang === "th" ? "งานส่งล่าสุด" : "Latest sends"}</h2>
-              <Button asChild size="sm" variant="ghost"><Link href="/notifications">{lang === "th" ? "ดูทั้งหมด" : "All"}</Link></Button>
-            </div>
-            <div className="mt-4 divide-y divide-white/10">
-              {latestRuns.map((run) => {
-                const task = tasks.find((candidate) => candidate.id === run.taskId);
-                return (
-                  <div key={run.id} className="grid grid-cols-[4rem_minmax(0,1fr)_5rem] items-center gap-3 py-3 text-sm">
-                    <span className="font-semibold text-slate-500">{formatDateTime(run.startedAt).split(" ").slice(-1)[0] ?? "-"}</span>
-                    <p className="line-clamp-1 font-bold text-slate-200">{task ? displayTaskName(task, lang) : displayRunTitle(run, task, lang)}</p>
-                    <Badge tone={statusTone(run.status)}>{localize(STATUS_LABELS, run.status, lang)}</Badge>
-                  </div>
-                );
-              })}
-            </div>
           </Card>
 
           <Card className="p-5">
@@ -1078,7 +1063,7 @@ export function DashboardControlView() {
         onHideNews={hideNews}
       />
 
-      <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
+      <section className="grid gap-5">
         <Card className="relative overflow-hidden p-6 sm:p-8">
           <div className="absolute -right-28 -top-28 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
           <div className="absolute -bottom-32 left-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
@@ -1089,22 +1074,6 @@ export function DashboardControlView() {
             <div className="mt-6 flex flex-wrap gap-2">
               {TOPICS.map((topic) => <Badge key={topic.key} tone={topic.tone}>{topic.emoji} {topic.label[lang]}</Badge>)}
             </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-400">{t("dashboard_latest_run_label")}</p>
-            {latestRun && <Badge tone={telegramTone(latestRun.telegramStatus)}>Telegram: {latestRun.telegramStatus}</Badge>}
-          </div>
-          <h2 className="mt-3 text-xl font-black text-white">{latestRun ? displayRunTitle(latestRun, taskById.get(latestRun.taskId), lang) : t("dashboard_no_result")}</h2>
-          <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">{latestRun ? displayRunSummary(latestRun, taskById.get(latestRun.taskId), lang) : t("dashboard_no_gpt_summary")}</p>
-          <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/45 p-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">{label(lang, "priority")}</span>
-              <span className="text-2xl font-black text-cyan-100">{latestRun?.priorityScore ?? 0}/100</span>
-            </div>
-            <p className="mt-3 text-xs text-slate-500">{label(lang, "lastRun")}: {latestRun ? formatDateTime(latestRun.startedAt) : "-"}</p>
           </div>
         </Card>
       </section>
@@ -1143,11 +1112,6 @@ export function DashboardControlView() {
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end"><div><p className="text-sm font-semibold text-cyan-200">{t("dashboard_latest_results_label")}</p><h2 className="mt-1 text-2xl font-black text-white">{t("dashboard_latest_results_title")}</h2><p className="mt-2 text-sm text-slate-400">{label(lang, "resultsSubtitle")}</p></div><div className="flex flex-wrap gap-2">{FILTERS.map((filter) => <button key={filter.key} className={`rounded-full border px-3 py-2 text-xs font-bold transition ${activeFilter === filter.key ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"}`} onClick={() => setActiveFilter(filter.key)} type="button">{filter.emoji} {filter.label[lang]}</button>)}</div></div>
         {filteredRuns.length === 0 ? <EmptyState title={t("dashboard_no_gpt_results")} description={t("dashboard_no_gpt_results_desc")} /> : <div className="grid gap-4 xl:grid-cols-3">{filteredRuns.slice(0, 6).map((run) => { const task = taskById.get(run.taskId); const topic = topicForRun(run, task); const score = clampScore(run.priorityScore); const highlights = runHighlights(run, lang); return <Card key={run.id} className="p-5"><div className="flex items-center justify-between gap-3"><div className="flex flex-wrap gap-2"><Badge tone={topic.tone}>{topic.emoji} {topic.label[lang]}</Badge><Badge tone={statusTone(run.status)}>{localize(STATUS_LABELS, run.status, lang)}</Badge></div><span className="text-xs text-slate-500">{formatDateTime(run.startedAt)}</span></div><h3 className="mt-4 text-lg font-black text-white">{displayRunTitle(run, task, lang)}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">{displayRunSummary(run, task, lang)}</p><div className="mt-4 flex flex-wrap gap-2"><Badge tone={telegramTone(run.telegramStatus)}>📨 {run.telegramStatus || "unknown"}</Badge><Badge tone="purple">🧠 {translationMode(run, lang)}</Badge>{sourceNames(run).map((source) => <Badge key={source} tone="gray">🗂 {source}</Badge>)}</div><div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-500" style={{ width: `${score}%` }} /></div><div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4"><p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{label(lang, "highlights")}</p>{highlights.length ? <ul className="mt-3 space-y-2 text-xs leading-5 text-slate-300">{highlights.map((item) => <li key={item} className="line-clamp-2">{item}</li>)}</ul> : <p className="mt-3 text-xs text-slate-400">{label(lang, "noHighlights")}</p>}</div><div className="mt-5 flex flex-wrap items-center gap-3"><Badge tone="blue">{lang === "th" ? "แสดงในหน้า Dashboard" : "Shown in Dashboard"}</Badge>{run.translatedContent && <Badge tone="green">{label(lang, "thai")}</Badge>}{run.originalContent && <Badge tone="gray">{label(lang, "original")}</Badge>}</div></Card>; })}</div>}
-      </section>
-
-      <section className="space-y-4">
-        <div><p className="text-sm font-semibold text-cyan-200">{label(lang, "execution")}</p><h2 className="mt-1 text-2xl font-black text-white">{label(lang, "executionTitle")}</h2></div>
-        <Card className="overflow-hidden"><div className="overflow-x-auto"><table className="min-w-full divide-y divide-white/10 text-sm"><thead className="bg-white/[0.03] text-left text-xs uppercase tracking-[0.18em] text-slate-500"><tr><th className="px-5 py-4">{label(lang, "task")}</th><th className="px-5 py-4">{label(lang, "status")}</th><th className="px-5 py-4">{label(lang, "telegram")}</th><th className="px-5 py-4">{label(lang, "ai")}</th><th className="px-5 py-4">{label(lang, "priority")}</th><th className="px-5 py-4">{label(lang, "lastRun")}</th><th className="px-5 py-4">{label(lang, "nextRunCol")}</th></tr></thead><tbody className="divide-y divide-white/10">{runs.slice(0, 10).map((run) => { const task = taskById.get(run.taskId); const topic = topicForRun(run, task); return <tr key={run.id} className="text-slate-300"><td className="min-w-[220px] px-5 py-4"><div className="font-bold text-white">{topic.emoji} {task ? displayTaskName(task, lang).replace(topic.emoji, "") : displayRunTitle(run, task, lang)}</div><div className="mt-1 text-xs text-slate-500">{topic.label[lang]}</div></td><td className="px-5 py-4"><Badge tone={statusTone(run.status)}>{localize(STATUS_LABELS, run.status, lang)}</Badge></td><td className="px-5 py-4"><Badge tone={telegramTone(run.telegramStatus)}>{run.telegramStatus || "unknown"}</Badge></td><td className="px-5 py-4">{translationMode(run, lang)}</td><td className="px-5 py-4 font-black text-cyan-100">{run.priorityScore}/100</td><td className="min-w-[150px] px-5 py-4 text-slate-400">{formatDateTime(run.startedAt)}</td><td className="min-w-[150px] px-5 py-4 text-slate-400">{formatDateTime(task?.nextRunAt)}</td></tr>; })}</tbody></table></div></Card>
       </section>
 
       <section className="space-y-4">

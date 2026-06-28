@@ -16,7 +16,6 @@ const navItems: NavItem[] = [
   { href: "/concerts", key: "nav_concerts", icon: "🎤" },
   { href: "/movies", key: "nav_movies", icon: "🎬" },
   { href: "/events", key: "nav_events", icon: "EV" },
-  { href: "/scheduled-tasks/create", key: "nav_create_task", icon: "+" },
   { href: "/notifications", key: "nav_notifications", icon: "N" },
   { href: "/settings", key: "nav_settings", icon: "S" },
   { href: "/admin", key: "nav_admin", icon: "A" },

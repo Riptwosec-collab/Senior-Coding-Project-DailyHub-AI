@@ -232,10 +232,19 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get("query");
   const title = searchParams.get("title") ?? query ?? "Poster";
   const kind = searchParams.get("kind") ?? "poster";
+  const strict = searchParams.get("strict") === "1" || searchParams.get("strict") === "true";
 
   const imageUrl = sourceUrl ? await resolveOpenGraphImage(sourceUrl) : query ? await resolveTmdbPoster(query) : null;
 
-  if (!imageUrl) return buildFallback(title, kind);
+  if (!imageUrl) {
+    if (strict) {
+      return NextResponse.json(
+        { success: false, error: { code: "REAL_IMAGE_NOT_FOUND", message: "No source image was found for this item." } },
+        { status: 404, headers: { "cache-control": "public, max-age=900" } },
+      );
+    }
+    return buildFallback(title, kind);
+  }
 
   return NextResponse.redirect(imageUrl, {
     headers: {

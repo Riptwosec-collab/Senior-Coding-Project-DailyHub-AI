@@ -67,6 +67,13 @@ function thaiTelegramText(value: string | null | undefined, fallback: string, ma
   return isThaiReady(text) ? text : fallback;
 }
 
+function telegramStoryText(value: string | null | undefined, fallback: string, max = 260) {
+  const text = truncate(value ?? "", max);
+  if (isThaiReady(text)) return text;
+  if (!text) return fallback;
+  return truncate(`${fallback}: ${text}`, max);
+}
+
 function formatStatusThai(status: string) {
   if (status === "success") return "สำเร็จ";
   if (status === "failed") return "ล้มเหลว";
@@ -158,7 +165,7 @@ function getSourceItems(sourceRecord: Record<string, unknown>) {
 
 function describeSourceItem(item: unknown, fallback: string) {
   const record = asRecord(item);
-  if (!record) return thaiTelegramText(String(item ?? ""), fallback, 260);
+  if (!record) return telegramStoryText(String(item ?? ""), fallback, 260);
 
   const title = asString(record.title) || asString(record.titleTh) || asString(record.deal) || asString(record.headline) || asString(record.subject) || asString(record.name);
   const summary = asString(record.summaryTh) || asString(record.summary) || asString(record.description) || asString(record.recommendedAction) || asString(record.whyItMatters);
@@ -167,7 +174,32 @@ function describeSourceItem(item: unknown, fallback: string) {
     : "";
   const text = [title, summary, whatToCheck ? `ควรเช็ก: ${whatToCheck}` : ""].filter(Boolean).join(" - ");
 
-  return thaiTelegramText(text, fallback, 260);
+  return telegramStoryText(text, fallback, 260);
+}
+
+function buildTaskFallbackStories(task: ScheduledTask, run: TaskRun) {
+  const topicMeta = getTaskTopicMeta(task);
+  const stats = getDataStats(run);
+  const title = telegramStoryText(run.translation?.translatedTitle ?? run.gptOutput.title, `${topicMeta.label} - ${task.name}`, 180);
+  const summary = telegramStoryText(
+    run.translatedContent ?? run.gptOutput.summary,
+    `${topicMeta.label} ของ "${task.name}" มีข้อมูลใหม่พร้อมอ่านต่อใน NimbusDaily`,
+    260,
+  );
+  const action = telegramStoryText(
+    run.gptOutput.recommended_action,
+    `ควรตรวจรายละเอียดล่าสุดของ${topicMeta.shortLabel} และดูแหล่งข้อมูลเต็มก่อนตัดสินใจ`,
+    220,
+  );
+  const sourceNames = stats.sourceNames.length ? stats.sourceNames : task.dataSources;
+  const sourceLine = sourceNames.length
+    ? `แหล่งข้อมูลที่ใช้: ${sourceNames.slice(0, 3).join(", ")}`
+    : "แหล่งข้อมูล: บันทึกจากงานอัตโนมัติของ NimbusDaily";
+  const countLine = stats.itemCount > 0
+    ? `ระบบพบข้อมูล ${stats.itemCount} รายการจาก ${Math.max(stats.sourceCount, sourceNames.length, 1)} แหล่ง`
+    : `หัวข้อนี้เชื่อมกับ ${task.dataSources.length || 1} แหล่งข้อมูล และรอบรันล่าสุดพร้อมตรวจในเว็บ`;
+
+  return [title, summary, action, countLine, sourceLine];
 }
 
 function getDataStats(run: TaskRun) {
@@ -191,7 +223,7 @@ function getThaiBullets(run: TaskRun) {
   if (translation?.translatedBullets?.length) {
     const bullets = translation.translatedBullets
       .slice(0, MAX_TELEGRAM_BULLETS)
-      .map((item, index) => thaiTelegramText(item, fallbackBullets[index] ?? fallbackBullets[0], 180));
+      .map((item, index) => telegramStoryText(item, fallbackBullets[index] ?? fallbackBullets[0], 180));
     return bullets.map((item) => `- ${item}`).join("\n");
   }
 
@@ -203,11 +235,11 @@ function getThaiBullets(run: TaskRun) {
   if (actionLines.length) {
     return actionLines
       .slice(0, MAX_TELEGRAM_BULLETS)
-      .map((item, index) => `- ${thaiTelegramText(item, fallbackBullets[index] ?? fallbackBullets[0], 180)}`)
+      .map((item, index) => `- ${telegramStoryText(item, fallbackBullets[index] ?? fallbackBullets[0], 180)}`)
       .join("\n");
   }
 
-  return `- ${thaiTelegramText(run.gptOutput.summary, fallbackBullets[0], 220)}`;
+  return `- ${telegramStoryText(run.gptOutput.summary, fallbackBullets[0], 220)}`;
 }
 
 function getTelegramStories(task: ScheduledTask, run: TaskRun) {
@@ -216,17 +248,17 @@ function getTelegramStories(task: ScheduledTask, run: TaskRun) {
     const sourceName = asString(source.source) || asString(source.title) || task.name;
     return getSourceItems(source).map((item) => describeSourceItem(item, `ข้อมูลจาก ${sourceName}`));
   });
-  const translatedStories = run.translation?.translatedBullets?.map((item) => thaiTelegramText(item, `ประเด็นจาก ${task.name}`, 220)) ?? [];
-  const summaryStory = thaiTelegramText(run.translatedContent ?? run.gptOutput.summary, `${task.name} พร้อมอ่านรายละเอียดเต็มใน NimbusDaily`, 240);
+  const translatedStories = run.translation?.translatedBullets?.map((item) => telegramStoryText(item, `ประเด็นจาก ${task.name}`, 220)) ?? [];
+  const summaryStory = telegramStoryText(run.translatedContent ?? run.gptOutput.summary, `${task.name} พร้อมอ่านรายละเอียดเต็มใน NimbusDaily`, 240);
+  const fallbackStories = buildTaskFallbackStories(task, run);
 
-  const stories = [...sourceStories, ...translatedStories, summaryStory]
+  const stories = [...sourceStories, ...translatedStories, summaryStory, ...fallbackStories]
     .map((item) => item.trim())
     .filter(Boolean);
   const uniqueStories = Array.from(new Set(stories)).slice(0, MAX_TELEGRAM_STORIES);
 
-  while (uniqueStories.length < MAX_TELEGRAM_STORIES) {
-    const next = uniqueStories.length + 1;
-    uniqueStories.push(`เปิด NimbusDaily เพื่อดูรายละเอียดเรื่องที่ ${next} พร้อมแหล่งข้อมูลเต็มของหัวข้อนี้`);
+  if (!uniqueStories.length) {
+    uniqueStories.push(`${getTaskTopicMeta(task).label}: ${task.name} มีข้อมูลพร้อมอ่านต่อใน NimbusDaily`);
   }
 
   return uniqueStories.map((item, index) => `เรื่องที่ ${index + 1}: ${truncate(item, 260)}`).join("\n");

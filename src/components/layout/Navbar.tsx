@@ -9,6 +9,7 @@ const navItems = [
   { href: "/", key: "nav_home" },
   { href: "/dashboard", key: "nav_dashboard" },
   { href: "/daily", key: "nav_daily" },
+  { href: "/concerts", key: "nav_concerts" },
   { href: "/scheduled-tasks", key: "nav_scheduled_tasks" },
   { href: "/task-results", key: "nav_task_results" },
   { href: "/notifications", key: "nav_notifications" },

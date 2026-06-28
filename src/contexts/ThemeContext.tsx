@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-export type AppTheme = "dark" | "cream";
+export type AppTheme = "dark" | "cream" | "sanook";
 
 interface ThemeContextValue {
   theme: AppTheme;
@@ -22,13 +22,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("nimbusdaily_theme");
-      if (saved === "dark" || saved === "cream") setThemeState(saved);
+      if (saved === "dark" || saved === "cream" || saved === "sanook") setThemeState(saved);
     } catch {}
   }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.documentElement.style.colorScheme = theme === "cream" ? "light" : "dark";
+    document.documentElement.style.colorScheme = theme === "dark" ? "dark" : "light";
   }, [theme]);
 
   const setTheme = useCallback((nextTheme: AppTheme) => {
@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
-      const nextTheme = current === "dark" ? "cream" : "dark";
+      const nextTheme = current === "dark" ? "cream" : current === "cream" ? "sanook" : "dark";
       try { localStorage.setItem("nimbusdaily_theme", nextTheme); } catch {}
       return nextTheme;
     });

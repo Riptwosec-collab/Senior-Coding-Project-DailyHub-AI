@@ -19,7 +19,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 type ReadFilter = "All" | "Unread" | "Read";
 type ImportanceFilter = "All" | "Important" | "Normal";
 
-const categoryOptions: Array<"All" | NotificationCategory> = ["All", "Daily Brief", "Email", "Sale", "Football", "Long Read", "Concert", "Public Alerts", "Travel Deals", "Custom"];
+const categoryOptions: Array<"All" | NotificationCategory> = ["All", "Daily Brief", "Email", "Sale", "Football", "Lifestyle", "Concert", "Public Alerts", "Travel Deals", "Custom"];
 const readOptions: ReadFilter[] = ["All", "Unread", "Read"];
 const importanceOptions: ImportanceFilter[] = ["All", "Important", "Normal"];
 
@@ -103,7 +103,7 @@ function toCategory(type: string): NotificationCategory {
   if (type === "Email Monitor") return "Email";
   if (type === "Sale Monitor") return "Sale";
   if (type === "World Cup Recap") return "Football";
-  if (type === "Weekend Long Read") return "Long Read";
+  if (type === "Weekend Long Read") return "Lifestyle";
   if (type === "Concert Alerts") return "Concert";
   if (type === "Public Alerts") return "Public Alerts";
   if (type === "Travel Deals") return "Travel Deals";

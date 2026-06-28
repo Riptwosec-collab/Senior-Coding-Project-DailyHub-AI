@@ -48,7 +48,7 @@ const TOPICS: Array<{ key: TopicKey; icon: string; th: string; en: string }> = [
   { key: "football", icon: "⚽", th: "ฟุตบอล", en: "Football" },
   { key: "publicAlerts", icon: "📢", th: "ประกาศรัฐ / BTS-MRT", en: "Public Alerts / BTS-MRT" },
   { key: "travelDeals", icon: "✈️", th: "โปรเดินทาง / โรงแรม", en: "Travel Deals / Hotels" },
-  { key: "longread", icon: "📚", th: "บทความอ่านยาว", en: "Long Read" },
+  { key: "lifestyle", icon: "💡", th: "ไอเดียวันหยุด / ไลฟ์สไตล์", en: "Lifestyle Ideas" },
   { key: "failed", icon: "❌", th: "มีปัญหา", en: "Failed" },
 ];
 
@@ -60,7 +60,7 @@ const TOPIC_PATTERNS: Array<{ topic: LibraryTopicKey; pattern: RegExp }> = [
   { topic: "email", pattern: /email|gmail|mail|inbox|อีเมล/i },
   { topic: "concert", pattern: /concert|artist|ticket|venue|คอนเสิร์ต|ศิลปิน|thailand|bangkok/i },
   { topic: "football", pattern: /football|soccer|world cup|premier|laliga|bundesliga|serie|ligue|uefa|บอล|ฟุตบอล/i },
-  { topic: "longread", pattern: /long read|article|reading|บทความ|อ่านยาว/i },
+  { topic: "lifestyle", pattern: /lifestyle|weekend|restaurant|cafe|buffet|article|reading|ร้านอาหาร|คาเฟ่|บุฟเฟ่ต์|ไลฟ์สไตล์|วันหยุด|ที่เที่ยว|พักผ่อน/i },
   { topic: "daily", pattern: /daily|brief|news|headline|ข่าว|สรุป/i },
 ];
 

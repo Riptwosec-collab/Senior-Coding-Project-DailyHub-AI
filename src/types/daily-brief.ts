@@ -14,7 +14,8 @@ export type DailyBriefCategoryKey =
   | "events"
   | "deals"
   | "publicAlerts"
-  | "travelDeals";
+  | "travelDeals"
+  | "lifestyle";
 
 export type TelegramStatus = "idle" | "queued" | "sent" | "failed" | "mock_sent";
 

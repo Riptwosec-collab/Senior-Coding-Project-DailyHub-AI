@@ -37,6 +37,7 @@ const CATEGORY_QUERY: Partial<Record<DailyBriefCategoryKey, string>> = {
   deals: "Shopee Lazada gadget software domain hosting promotion",
   publicAlerts: "Thailand government announcement public alert BTS MRT disruption public service",
   travelDeals: "Thailand flight deals airfare hotel room rate travel promotion resort package",
+  lifestyle: "Thailand restaurant cafe buffet weekend activity lifestyle event travel ideas",
 };
 
 type FetchableDailyBriefCategory = Exclude<DailyBriefCategoryKey, "all">;
@@ -69,6 +70,7 @@ const GOOGLE_NEWS_CATEGORIES: FetchableDailyBriefCategory[] = [
   "deals",
   "publicAlerts",
   "travelDeals",
+  "lifestyle",
 ];
 
 const GOOGLE_NEWS_QUERY: Record<FetchableDailyBriefCategory, string[]> = {
@@ -87,6 +89,7 @@ const GOOGLE_NEWS_QUERY: Record<FetchableDailyBriefCategory, string[]> = {
   deals: ["Shopee OR Lazada OR gadget OR software OR domain hosting OR โปรโมชั่น", "promotion OR discount OR gadget deals OR software deals OR hosting deal"],
   publicAlerts: ["ประกาศสำคัญ OR แจ้งเตือนรัฐ OR BTS ขัดข้อง OR MRT ขัดข้อง OR ปิดถนน", "government notice OR public alert OR BTS disruption OR MRT disruption Thailand"],
   travelDeals: ["โปรตั๋วเครื่องบิน OR โปรโมชั่นโรงแรม OR เที่ยวไทย OR flight deals OR hotel deals", "airline sale OR hotel promotion OR Thailand travel deals"],
+  lifestyle: ["ร้านอาหาร OR คาเฟ่ OR บุฟเฟ่ต์ OR กิจกรรมวันหยุด OR ที่เที่ยวใกล้กรุงเทพ", "Bangkok cafe OR restaurant OR weekend activity OR lifestyle event Thailand"],
 };
 
 function truncate(value: string, max = 620) {
@@ -305,6 +308,7 @@ function detectCategory(article: NewsDataArticle): DailyBriefCategoryKey {
   if (/football|soccer|match|fixture|ผลบอล|ฟุตบอล|กีฬา/.test(text)) return "sports";
   if (/government|public alert|official notice|announcement|bts|mrt|train disruption|transit disruption|road closure|ประกาศ|แจ้งเตือนรัฐ|หน่วยงานรัฐ|ขัดข้อง|ปิดถนน|บริการสาธารณะ/.test(text)) return "publicAlerts";
   if (/flight deal|airfare|airline|hotel|resort|room rate|travel promotion|travel deal|package tour|ตั๋วเครื่องบิน|โปรบิน|สายการบิน|โรงแรม|ห้องพัก|รีสอร์ต|แพ็กเกจเที่ยว|โปรท่องเที่ยว|เที่ยวไทย/.test(text)) return "travelDeals";
+  if (/restaurant|cafe|buffet|weekend activity|lifestyle|nearby event|ร้านอาหาร|คาเฟ่|บุฟเฟ่ต์|กิจกรรมวันหยุด|ไอเดียพักผ่อน|อีเวนต์ใกล้ตัว|ที่เที่ยว/.test(text)) return "lifestyle";
   if (/concert|ticket|artist|event|product launch|คอนเสิร์ต|อีเวนต์|สินค้าใหม่/.test(text)) return "events";
   if (/deal|discount|promotion|shopee|lazada|hosting|domain|โปร|ลดราคา/.test(text)) return "deals";
   if (/thailand|thai|bangkok|รัฐบาล|เศรษฐกิจไทย|กรุงเทพ/.test(text)) return "thai";

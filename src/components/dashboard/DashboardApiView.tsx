@@ -29,7 +29,7 @@ const TASK_TYPE_LABELS: Record<string, LocalizedText> = {
   "Football Recap": { th: "สรุปฟุตบอล", en: "Football Recap" },
   "Public Alerts": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ", en: "Public Alerts" },
   "Travel Deals": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals" },
-  "Weekend Long Read": { th: "บทความอ่านยาว", en: "Long Read" },
+  "Weekend Long Read": { th: "ไอเดียพักผ่อน / ไลฟ์สไตล์", en: "Lifestyle Ideas" },
   Custom: { th: "กำหนดเอง", en: "Custom" },
 };
 
@@ -66,9 +66,9 @@ const CONTENT_LABELS: Record<string, LocalizedText> = {
   "Football Recap มีปัญหา": { th: "สรุปฟุตบอลมีปัญหา", en: "Football Recap has an issue" },
   "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ / BTS-MRT", en: "Public Alerts / Government / BTS-MRT" },
   "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals / Flights / Hotels" },
-  "Weekend Long Read Picker": { th: "คัดบทความอ่านยาว", en: "Long Read Picker" },
-  "Weekend Long Read Picks": { th: "บทความอ่านยาวที่น่าอ่าน", en: "Long Read Picks" },
-  "Weekend Long Read คัดแล้ว": { th: "คัดบทความอ่านยาวแล้ว", en: "Long Read picked" },
+  "Weekend Long Read Picker": { th: "ไอเดียพักผ่อน / ไลฟ์สไตล์", en: "Lifestyle Ideas" },
+  "Weekend Long Read Picks": { th: "ไอเดียพักผ่อนที่น่าสนใจ", en: "Lifestyle ideas" },
+  "Weekend Long Read คัดแล้ว": { th: "คัดไอเดียพักผ่อนแล้ว", en: "Lifestyle ideas picked" },
   "Morning Daily Brief พร้อมแล้ว": { th: "สรุปข่าวเช้าพร้อมแล้ว", en: "Morning Daily Brief is ready" },
   "มีอีเมลสำคัญต้องดู": { th: "มีอีเมลสำคัญต้องดู", en: "Important emails need review" },
   "พบคอนเสิร์ตน่าสนใจ": { th: "พบคอนเสิร์ตน่าสนใจ", en: "Interesting concerts found" },
@@ -110,8 +110,8 @@ const CONTENT_LABELS: Record<string, LocalizedText> = {
     en: "Concerts near Bangkok were found and are worth saving. Priority 78/100.",
   },
   "คัดบทความอ่านยาวเกี่ยวกับ AI agents และ productivity systems สำหรับวันหยุด": {
-    th: "คัดบทความอ่านยาวเกี่ยวกับ AI agents และ productivity systems",
-    en: "Picked long reads about AI agents and productivity systems.",
+    th: "คัดไอเดียพักผ่อนและกิจกรรมวันหยุดที่น่าสนใจ",
+    en: "Picked lifestyle ideas and weekend activities.",
   },
 };
 

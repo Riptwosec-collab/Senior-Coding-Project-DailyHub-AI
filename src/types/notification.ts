@@ -3,6 +3,7 @@ export type NotificationCategory =
   | "Email"
   | "Sale"
   | "Football"
+  | "Lifestyle"
   | "Long Read"
   | "Concert"
   | "Public Alerts"

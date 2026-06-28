@@ -6,8 +6,8 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-8">
-        <RunBatchControls />
         <DashboardControlView />
+        <RunBatchControls />
       </div>
     </AppShell>
   );

@@ -180,6 +180,16 @@ export const dailyBriefTopicDetails: Record<DailyBriefCategoryKey, DailyBriefTop
     noteTh: "เป็นข้อมูลข่าวและโปรโมชัน ควรตรวจเงื่อนไข วันเดินทาง ภาษี และค่าธรรมเนียมจากผู้ให้บริการก่อนจอง",
     noteEn: "News and promotion context only. Check dates, taxes, fees, and terms with the provider before booking.",
   },
+  lifestyle: {
+    key: "lifestyle",
+    icon: "💡",
+    labelTh: "ไอเดียวันหยุด / ไลฟ์สไตล์",
+    labelEn: "Lifestyle Ideas",
+    descriptionTh: "ร้านอาหาร ที่เที่ยว กิจกรรมพักผ่อน และอีเวนต์ใกล้ตัวสำหรับวางแผนวันหยุด",
+    descriptionEn: "Restaurants, trips, leisure activities, and nearby events for weekend planning.",
+    subtopicsTh: ["ร้านอาหาร", "ที่เที่ยว", "กิจกรรมวันหยุด", "ไอเดียพักผ่อน", "คาเฟ่", "บุฟเฟ่ต์", "อีเวนต์ใกล้ตัว"],
+    subtopicsEn: ["Restaurants", "Places to visit", "Weekend activities", "Relaxation ideas", "Cafes", "Buffets", "Nearby events"],
+  },
 };
 
 export function getDailyBriefTopicDetail(key: DailyBriefCategoryKey) {

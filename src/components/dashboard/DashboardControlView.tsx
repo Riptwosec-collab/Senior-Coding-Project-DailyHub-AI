@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiRequest, toErrorMessage } from "@/lib/api-client";
+import { getDailyBriefTopicDetail } from "@/lib/daily-brief-taxonomy";
 import { clampScore, formatDateTime } from "@/lib/utils";
 import type { Lang } from "@/lib/translations";
+import type { DailyBriefApiResponse, DailyBriefCategoryKey, DailyBriefItem } from "@/types/daily-brief";
 import type { WebNotification } from "@/types/notification";
 import type { ScheduledTask } from "@/types/scheduled-task";
 import type { TaskRun } from "@/types/task-run";
@@ -17,8 +19,9 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type BadgeTone = "blue" | "green" | "purple" | "red" | "gray";
-type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "publicAlerts" | "travelDeals" | "longread" | "failed";
+type FilterKey = "all" | "daily" | "email" | "product" | "concert" | "football" | "publicAlerts" | "travelDeals" | "lifestyle" | "failed";
 type Localized = Record<Lang, string>;
+type NewsTelegramResult = { status: DailyBriefItem["telegramStatus"]; message: string; parts: number };
 
 type Topic = {
   key: Exclude<FilterKey, "all" | "failed">;
@@ -36,7 +39,7 @@ const TOPICS: Topic[] = [
   { key: "product", emoji: "🌍", label: { th: "สินค้าใหม่/น่าสนใจทั่วโลก", en: "Global Product Radar" }, tone: "green", pattern: /sale|deal|price|shop|shopee|product|radar|gadget|สินค้า|โปร/i },
   { key: "concert", emoji: "🎤", label: { th: "แจ้งเตือนคอนเสิร์ต", en: "Concert Alerts" }, tone: "purple", pattern: /concert|artist|music|ticket|live|คอนเสิร์ต|ศิลปิน/i },
   { key: "football", emoji: "⚽", label: { th: "สรุปฟุตบอล", en: "Football Recap" }, tone: "green", pattern: /football|soccer|world cup|match|score|บอล|ฟุตบอล/i },
-  { key: "longread", emoji: "📚", label: { th: "บทความอ่านยาว", en: "Long Read" }, tone: "purple", pattern: /long read|article|reading|บทความ|อ่านยาว/i },
+  { key: "lifestyle", emoji: "💡", label: { th: "ไอเดียพักผ่อน / ไลฟ์สไตล์", en: "Lifestyle Ideas" }, tone: "purple", pattern: /lifestyle|weekend|restaurant|cafe|buffet|article|reading|ร้านอาหาร|คาเฟ่|บุฟเฟ่ต์|ไลฟ์สไตล์|วันหยุด|ที่เที่ยว|พักผ่อน/i },
 ];
 
 const DEFAULT_TOPIC: Topic = {
@@ -144,6 +147,87 @@ const LABELS: Record<Lang, Record<string, string>> = {
   },
 };
 
+const DAILY_COPY = {
+  th: {
+    badge: "📰 Daily Brief / ข่าวประจำวัน",
+    title: "ศูนย์รวมข่าวและ Daily Brief วันนี้",
+    desc: "ข่าวล่าสุดจากระบบ Daily Brief เดิม พร้อมสรุปไทยก่อนส่ง Telegram อ่านเต็มจากลิงก์ต้นฉบับ และบันทึกข่าวสำคัญไว้ดูทีหลังได้จากหน้า Dashboard",
+    latest: "ข่าวล่าสุดวันนี้",
+    latestDesc: "แสดง 5-8 ข่าวล่าสุด พร้อมหมวด แหล่งข่าว เวลา priority และ action ต่อข่าว",
+    subcategories: "หมวดและ subcategory ที่รองรับ",
+    subcategoryDesc: "ใช้ taxonomy เดิมของ Daily Brief เพื่อคุมหัวข้อข่าว ไม่สร้างระบบซ้ำ",
+    readFull: "อ่านเต็ม",
+    sendTelegram: "ส่ง Telegram",
+    sendingTelegram: "กำลังส่ง...",
+    hide: "ซ่อน",
+    save: "บันทึกไว้ดูทีหลัง",
+    saved: "บันทึกแล้ว",
+    source: "แหล่งข่าว",
+    published: "เวลา",
+    why: "ทำไมสำคัญ",
+    retryNews: "ลองดึงข่าวใหม่",
+    emptyTitle: "ยังไม่มีข่าวให้แสดง",
+    emptyDesc: "กดดึงข่าวล่าสุด หรือระบบจะใช้ fallback mock data เมื่อ feed จริงไม่มีข่าว",
+    totalNews: "ข่าวทั้งหมดวันนี้",
+    highPriority: "ข่าว Priority สูง",
+    telegramSent: "Telegram ส่งแล้ว",
+    failedTasks: "งานล้มเหลว",
+    pendingRead: "ข่าวรออ่านเต็ม",
+    cyberAlert: "Cyber Alert",
+    pmTraffic: "PM2.5 / Traffic",
+    openDaily: "เปิดหน้า Daily Brief",
+    fetchLatest: "ดึงข่าวล่าสุด",
+    sendAll: "ส่ง Telegram ทั้งหมด",
+    schedule: "ตั้งเวลา Daily Brief",
+    latestResults: "ดูผลลัพธ์ล่าสุด",
+    failedJobs: "ดูงานที่ล้มเหลว",
+    newsRefreshed: "ดึงข่าวล่าสุดเรียบร้อย",
+    newsSaved: "บันทึกข่าวไว้ดูทีหลังแล้ว",
+    newsHidden: "ซ่อนข่าวนี้จาก Dashboard แล้ว",
+    sendAllDone: "ส่ง Telegram ข่าวบน Dashboard แล้ว {count} ข่าว | sent/mock {sent} | failed {failed}",
+    fallbackMode: "Fallback พร้อมใช้งาน",
+  },
+  en: {
+    badge: "📰 Daily Brief / News Hub",
+    title: "Today’s Daily Brief news center",
+    desc: "Latest stories from the existing Daily Brief system, translated to Thai before Telegram, with original-source links, save, hide, and per-story send actions.",
+    latest: "Latest stories today",
+    latestDesc: "Shows the latest 5-8 stories with category, source, time, priority, and per-story actions.",
+    subcategories: "Supported categories and subcategories",
+    subcategoryDesc: "Uses the existing Daily Brief taxonomy, without creating a duplicate news system.",
+    readFull: "Read Full",
+    sendTelegram: "Send Telegram",
+    sendingTelegram: "Sending...",
+    hide: "Hide",
+    save: "Save for later",
+    saved: "Saved",
+    source: "Source",
+    published: "Time",
+    why: "Why it matters",
+    retryNews: "Retry news fetch",
+    emptyTitle: "No stories to show yet",
+    emptyDesc: "Fetch latest news, or NimbusDaily will use fallback mock data when real feeds are empty.",
+    totalNews: "News Today",
+    highPriority: "High Priority",
+    telegramSent: "Telegram Sent",
+    failedTasks: "Failed Tasks",
+    pendingRead: "Pending Full Read",
+    cyberAlert: "Cyber Alert",
+    pmTraffic: "PM2.5 / Traffic",
+    openDaily: "Open Daily Brief",
+    fetchLatest: "Fetch Latest",
+    sendAll: "Send All Telegram",
+    schedule: "Schedule Daily Brief",
+    latestResults: "Latest Results",
+    failedJobs: "Failed Jobs",
+    newsRefreshed: "Latest news refreshed",
+    newsSaved: "Story saved for later",
+    newsHidden: "Story hidden from Dashboard",
+    sendAllDone: "Sent Dashboard news to Telegram: {count} stories | sent/mock {sent} | failed {failed}",
+    fallbackMode: "Fallback ready",
+  },
+} as const;
+
 const TYPE_LABELS: Record<string, Localized> = {
   "Daily Brief": { th: "สรุปประจำวัน / ข่าว", en: "Daily Brief / News" },
   "Email Monitor": { th: "ตรวจอีเมลสำคัญ", en: "Email Monitor" },
@@ -152,7 +236,7 @@ const TYPE_LABELS: Record<string, Localized> = {
   "World Cup Recap": { th: "สรุปฟุตบอล", en: "Football Recap" },
   "Public Alerts": { th: "ประกาศสำคัญ / แจ้งเตือนรัฐ", en: "Public Alerts" },
   "Travel Deals": { th: "โปรเดินทาง / ตั๋วเครื่องบิน / โรงแรม", en: "Travel Deals" },
-  "Weekend Long Read": { th: "บทความอ่านยาว", en: "Long Read" },
+  "Weekend Long Read": { th: "ไอเดียพักผ่อน / ไลฟ์สไตล์", en: "Lifestyle Ideas" },
   Custom: { th: "กำหนดเอง", en: "Custom" },
 };
 
@@ -170,6 +254,10 @@ type RunNowResult = { taskRun?: TaskRun };
 
 function label(lang: Lang, key: keyof typeof LABELS.th) {
   return LABELS[lang][key];
+}
+
+function dailyText(lang: Lang, key: keyof typeof DAILY_COPY.th) {
+  return DAILY_COPY[lang][key];
 }
 
 function fill(template: string, values: Record<string, string | number>) {
@@ -246,6 +334,62 @@ function displayRunSummary(run: TaskRun, task: ScheduledTask | undefined, lang: 
   if (task?.type === "Sale Monitor") return label(lang, "productSummary");
   if (lang === "th") return run.translatedContent || run.translation?.translatedSummary || run.gptOutput.summary;
   return run.gptOutput.summary;
+}
+
+function formatNewsTime(value: string | undefined, lang: Lang) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat(lang === "th" ? "th-TH" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Bangkok",
+  }).format(new Date(value));
+}
+
+function dailyCategoryLabel(key: DailyBriefCategoryKey, lang: Lang) {
+  const detail = getDailyBriefTopicDetail(key);
+  return lang === "th" ? detail.labelTh : detail.labelEn;
+}
+
+function dailyCategoryDescription(key: DailyBriefCategoryKey, lang: Lang) {
+  const detail = getDailyBriefTopicDetail(key);
+  return lang === "th" ? detail.descriptionTh : detail.descriptionEn;
+}
+
+function dailyCategorySubtopics(key: DailyBriefCategoryKey, lang: Lang) {
+  const detail = getDailyBriefTopicDetail(key);
+  return lang === "th" ? detail.subtopicsTh : detail.subtopicsEn;
+}
+
+function dailyItemTitle(item: DailyBriefItem, lang: Lang) {
+  return lang === "th" ? item.titleTh : item.title || item.titleTh;
+}
+
+function dailyItemSummary(item: DailyBriefItem, lang: Lang) {
+  if (lang === "th") return item.summaryTh;
+  return item.rawDescription || item.extractedText || item.summaryTh;
+}
+
+function dailyItemBullets(item: DailyBriefItem, lang: Lang) {
+  if (lang === "th") return item.bulletPoints;
+  return item.rawDescription
+    ? [item.rawDescription.slice(0, 180), `Source: ${item.sourceName}`, `Category: ${dailyCategoryLabel(item.category, "en")}`]
+    : item.bulletPoints;
+}
+
+function isDailyNewsSent(status: DailyBriefItem["telegramStatus"] | undefined) {
+  return status === "sent" || status === "mock_sent";
+}
+
+function dailyNewsStatusTone(item: DailyBriefItem): BadgeTone {
+  if (isDailyNewsSent(item.telegramStatus)) return "green";
+  if (item.telegramStatus === "failed") return "red";
+  if (item.isSaved) return "blue";
+  if (item.telegramStatus === "queued") return "purple";
+  return "gray";
+}
+
+function newsProgressStyle(score: number) {
+  return { width: `${clampScore(score)}%` };
 }
 
 function sourceEntries(run: TaskRun) {
@@ -358,6 +502,12 @@ export function DashboardControlView() {
   const [notifications, setNotifications] = useState<WebNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dailyBrief, setDailyBrief] = useState<DailyBriefApiResponse | null>(null);
+  const [dailyBriefError, setDailyBriefError] = useState<string | null>(null);
+  const [hiddenNewsIds, setHiddenNewsIds] = useState<Set<string>>(() => new Set());
+  const [savedNewsIds, setSavedNewsIds] = useState<Set<string>>(() => new Set());
+  const [newsStatuses, setNewsStatuses] = useState<Record<string, DailyBriefItem["telegramStatus"]>>({});
+  const [newsActionLoading, setNewsActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState(t("dashboard_command_initial_message"));
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [actionLoading, setActionLoading] = useState<"runAll" | "task" | null>(null);
@@ -367,21 +517,35 @@ export function DashboardControlView() {
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    try {
-      const [taskData, runData, notificationData] = await Promise.all([
-        apiRequest<ScheduledTask[]>("/api/scheduled-tasks"),
-        apiRequest<TaskRun[]>("/api/task-runs"),
-        apiRequest<WebNotification[]>("/api/notifications"),
-      ]);
-      setTasks(taskData);
-      setRuns(runData);
-      setNotifications(notificationData);
-    } catch (err) {
-      setError(toErrorMessage(err));
-    } finally {
-      setIsLoading(false);
+    setDailyBriefError(null);
+    const [taskResult, runResult, notificationResult, briefResult] = await Promise.allSettled([
+      apiRequest<ScheduledTask[]>("/api/scheduled-tasks"),
+      apiRequest<TaskRun[]>("/api/task-runs"),
+      apiRequest<WebNotification[]>("/api/notifications"),
+      apiRequest<DailyBriefApiResponse>("/api/news/latest"),
+    ]);
+
+    if (taskResult.status === "fulfilled") setTasks(taskResult.value);
+    else setTasks([]);
+
+    if (runResult.status === "fulfilled") setRuns(runResult.value);
+    else setRuns([]);
+
+    if (notificationResult.status === "fulfilled") setNotifications(notificationResult.value);
+    else setNotifications([]);
+
+    if (briefResult.status === "fulfilled") setDailyBrief(briefResult.value);
+    else setDailyBriefError(toErrorMessage(briefResult.reason));
+
+    const coreFailures = [taskResult, runResult, notificationResult].filter((result) => result.status === "rejected");
+    if (coreFailures.length === 3 && taskResult.status === "rejected") {
+      setError(toErrorMessage(taskResult.reason));
+    } else if (coreFailures.length > 0) {
+      setMessage(lang === "th" ? "บาง API โหลดไม่สำเร็จ แต่ Dashboard ยังแสดงข้อมูลที่เหลือและ Daily Brief fallback ได้" : "Some APIs failed, but the dashboard is still showing available data and Daily Brief fallback.");
     }
-  }, []);
+
+    setIsLoading(false);
+  }, [lang]);
 
   useEffect(() => {
     void loadDashboard();
@@ -408,6 +572,40 @@ export function DashboardControlView() {
     { label: label(lang, "nextRun"), value: upcoming ? formatDateTime(upcoming.nextRunAt).split(" ").slice(-1)[0] : "-", hint: upcoming ? displayTaskName(upcoming, lang) : label(lang, "noNextRun"), tone: "purple" as const, icon: "⏭️" },
     { label: label(lang, "aiMode"), value: systemAiMode(runs), hint: latestRun ? translationMode(latestRun, lang) : "-", tone: "purple" as const, icon: "🧠" },
     { label: label(lang, "dataMode"), value: dataMode(runs, lang), hint: sourceNames(latestRun ?? ({} as TaskRun)).join(", ") || label(lang, "fromApi"), tone: "gray" as const, icon: "🗂️" },
+  ];
+
+  const dailyNewsItems = useMemo(() => {
+    return (dailyBrief?.items ?? [])
+      .filter((item) => !hiddenNewsIds.has(item.id) && !item.isHidden)
+      .map((item) => ({
+        ...item,
+        isSaved: savedNewsIds.has(item.id) || item.isSaved,
+        telegramStatus: newsStatuses[item.id] ?? item.telegramStatus,
+      }))
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .slice(0, 8);
+  }, [dailyBrief, hiddenNewsIds, newsStatuses, savedNewsIds]);
+
+  const dailyCategoryCounts = useMemo(() => {
+    return (dailyBrief?.items ?? []).reduce<Record<string, number>>((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+      return acc;
+    }, {});
+  }, [dailyBrief]);
+
+  const highPriorityNews = (dailyBrief?.items ?? []).filter((item) => item.priorityScore >= 80).length;
+  const sentNewsCount = (dailyBrief?.items ?? []).filter((item) => isDailyNewsSent(newsStatuses[item.id] ?? item.telegramStatus)).length;
+  const pendingReadCount = dailyNewsItems.filter((item) => !savedNewsIds.has(item.id)).length;
+  const cyberNewsCount = (dailyBrief?.items ?? []).filter((item) => item.category === "cybersecurity").length;
+  const pmTrafficCount = (dailyBrief?.items ?? []).filter((item) => item.category === "weatherPm25" || item.category === "traffic").length;
+  const newsSnapshotCards = [
+    { label: dailyText(lang, "totalNews"), value: dailyBrief?.summary.totalItems ?? dailyNewsItems.length, hint: dailyBrief?.summary.mode ?? dailyText(lang, "fallbackMode"), tone: "blue" as const, icon: "📰" },
+    { label: dailyText(lang, "highPriority"), value: highPriorityNews, hint: "Priority ≥ 80", tone: "purple" as const, icon: "⭐" },
+    { label: dailyText(lang, "telegramSent"), value: sentNewsCount, hint: "sent / mock_sent", tone: "green" as const, icon: "📨" },
+    { label: dailyText(lang, "failedTasks"), value: failedCount, hint: failedCount > 0 ? label(lang, "needsReview") : label(lang, "healthy"), tone: failedCount > 0 ? "red" as const : "green" as const, icon: "⚠️" },
+    { label: dailyText(lang, "pendingRead"), value: pendingReadCount, hint: dailyText(lang, "latest"), tone: "gray" as const, icon: "🔎" },
+    { label: dailyText(lang, "cyberAlert"), value: cyberNewsCount, hint: dailyCategoryLabel("cybersecurity", lang), tone: cyberNewsCount ? "red" as const : "gray" as const, icon: "🛡️" },
+    { label: dailyText(lang, "pmTraffic"), value: pmTrafficCount, hint: `${dailyCategoryLabel("weatherPm25", lang)} / ${dailyCategoryLabel("traffic", lang)}`, tone: "green" as const, icon: "🌦️" },
   ];
 
   async function runTask(task: ScheduledTask) {
@@ -445,11 +643,218 @@ export function DashboardControlView() {
     }
   }
 
+  async function refreshDailyBrief() {
+    setNewsActionLoading("refreshNews");
+    setDailyBriefError(null);
+    try {
+      const data = await apiRequest<DailyBriefApiResponse>("/api/news/latest");
+      setDailyBrief(data);
+      setMessage(dailyText(lang, "newsRefreshed"));
+    } catch (err) {
+      const nextError = toErrorMessage(err);
+      setDailyBriefError(nextError);
+      setMessage(nextError);
+    } finally {
+      setNewsActionLoading(null);
+    }
+  }
+
+  async function sendNewsToTelegram(item: DailyBriefItem) {
+    setNewsActionLoading(`news:${item.id}`);
+    try {
+      const result = await apiRequest<NewsTelegramResult>("/api/telegram/send-news", {
+        method: "POST",
+        body: JSON.stringify({ item }),
+      });
+      setNewsStatuses((prev) => ({ ...prev, [item.id]: result.status }));
+      setMessage(result.message);
+    } catch (err) {
+      setNewsStatuses((prev) => ({ ...prev, [item.id]: "failed" }));
+      setMessage(toErrorMessage(err));
+    } finally {
+      setNewsActionLoading(null);
+    }
+  }
+
+  async function sendAllNewsToTelegram() {
+    setNewsActionLoading("sendAllNews");
+    let sent = 0;
+    let failed = 0;
+
+    try {
+      for (const item of dailyNewsItems) {
+        try {
+          const result = await apiRequest<NewsTelegramResult>("/api/telegram/send-news", {
+            method: "POST",
+            body: JSON.stringify({ item }),
+          });
+          setNewsStatuses((prev) => ({ ...prev, [item.id]: result.status }));
+          if (isDailyNewsSent(result.status)) sent += 1;
+          if (result.status === "failed") failed += 1;
+        } catch {
+          failed += 1;
+          setNewsStatuses((prev) => ({ ...prev, [item.id]: "failed" }));
+        }
+      }
+      setMessage(fill(dailyText(lang, "sendAllDone"), { count: dailyNewsItems.length, sent, failed }));
+    } finally {
+      setNewsActionLoading(null);
+    }
+  }
+
+  function saveNews(item: DailyBriefItem) {
+    setSavedNewsIds((prev) => {
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+    setMessage(dailyText(lang, "newsSaved"));
+  }
+
+  function hideNews(item: DailyBriefItem) {
+    setHiddenNewsIds((prev) => {
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+    setMessage(dailyText(lang, "newsHidden"));
+  }
+
   if (isLoading) return <LoadingState title={t("dashboard_loading_title")} description={t("dashboard_loading_desc")} />;
   if (error) return <ErrorState title={t("dashboard_loading_failed")} description={error} onRetry={loadDashboard} />;
 
   return (
     <div className="space-y-8">
+      <section className="space-y-5">
+        <Card className="relative overflow-hidden border-cyan-300/25 bg-cyan-300/[0.055] p-6 sm:p-8">
+          <div className="absolute -right-28 -top-28 h-80 w-80 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute -bottom-32 left-16 h-72 w-72 rounded-full bg-violet-500/18 blur-3xl" />
+          <div className="relative grid gap-6 xl:grid-cols-[1.1fr_0.9fr] xl:items-end">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone="blue">{dailyText(lang, "badge")}</Badge>
+                <Badge tone="green">{dailyBrief?.summary.mode ?? dailyText(lang, "fallbackMode")}</Badge>
+                <Badge tone="purple">Thai summary + Telegram</Badge>
+              </div>
+              <h1 className="mt-5 max-w-4xl text-3xl font-black tracking-tight text-white sm:text-5xl">{dailyText(lang, "title")}</h1>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">{dailyText(lang, "desc")}</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button asChild><Link href="/daily">📰 {dailyText(lang, "openDaily")}</Link></Button>
+              <Button disabled={newsActionLoading === "refreshNews"} onClick={() => void refreshDailyBrief()} type="button" variant="secondary">{newsActionLoading === "refreshNews" ? label(lang, "running") : `🔄 ${dailyText(lang, "fetchLatest")}`}</Button>
+              <Button disabled={!dailyNewsItems.length || newsActionLoading === "sendAllNews"} onClick={() => void sendAllNewsToTelegram()} type="button" variant="secondary">{newsActionLoading === "sendAllNews" ? dailyText(lang, "sendingTelegram") : `📨 ${dailyText(lang, "sendAll")}`}</Button>
+              <Button asChild variant="outline"><Link href="/daily#daily-brief-scheduler">⏱ {dailyText(lang, "schedule")}</Link></Button>
+              <Button asChild variant="outline"><Link href="/task-results">📋 {dailyText(lang, "latestResults")}</Link></Button>
+              <Button asChild variant="outline"><Link href="/task-results?status=failed">⚠️ {dailyText(lang, "failedJobs")}</Link></Button>
+            </div>
+          </div>
+        </Card>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+          {newsSnapshotCards.map((card) => (
+            <Card key={card.label} className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{card.label}</p>
+                  <p className="mt-2 truncate text-2xl font-black text-white">{card.value}</p>
+                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-400">{card.hint}</p>
+                </div>
+                <Badge tone={card.tone}>{card.icon}</Badge>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-end">
+            <div>
+              <p className="text-sm font-semibold text-cyan-200">{dailyText(lang, "latest")}</p>
+              <h2 className="mt-1 text-2xl font-black text-white">{dailyText(lang, "latestDesc")}</h2>
+            </div>
+            <p className="text-sm font-semibold text-slate-400">{dailyBrief?.summary.date ?? "-"}</p>
+          </div>
+
+          {dailyBriefError && <ErrorState title={t("dashboard_loading_failed")} description={dailyBriefError} onRetry={() => void refreshDailyBrief()} />}
+
+          {!dailyBriefError && dailyNewsItems.length === 0 && (
+            <EmptyState title={dailyText(lang, "emptyTitle")} description={dailyText(lang, "emptyDesc")} />
+          )}
+
+          {!dailyBriefError && dailyNewsItems.length > 0 && (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {dailyNewsItems.map((item) => {
+                const detail = getDailyBriefTopicDetail(item.category);
+                const isSending = newsActionLoading === `news:${item.id}`;
+                const statusLabel = item.isSaved ? dailyText(lang, "saved") : item.telegramStatus === "idle" ? "ready" : item.telegramStatus;
+                return (
+                  <Card key={item.id} className="flex min-h-[25rem] flex-col p-5 transition hover:border-cyan-300/35 hover:bg-cyan-300/[0.045]">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="blue">{detail.icon} {dailyCategoryLabel(item.category, lang)}</Badge>
+                      <Badge tone={dailyNewsStatusTone(item)}>{statusLabel}</Badge>
+                      <Badge tone="gray">{item.sourceName}</Badge>
+                    </div>
+                    <div className="mt-4 flex items-start justify-between gap-4">
+                      <h3 className="line-clamp-3 text-xl font-black leading-8 text-white">{dailyItemTitle(item, lang)}</h3>
+                      <span className="shrink-0 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm font-black text-cyan-100">{item.priorityScore}/100</span>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-500" style={newsProgressStyle(item.priorityScore)} />
+                    </div>
+                    <p className="mt-3 text-xs font-semibold text-slate-500">{dailyText(lang, "source")}: {item.sourceName} · {dailyText(lang, "published")}: {formatNewsTime(item.publishedAt, lang)}</p>
+                    <p className="mt-4 line-clamp-3 text-sm leading-7 text-slate-300">{dailyItemSummary(item, lang)}</p>
+                    <div className="mt-4 space-y-2 text-sm leading-6 text-slate-300">
+                      {dailyItemBullets(item, lang).slice(0, 3).map((point) => <p key={point}>• {point}</p>)}
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-xs leading-6 text-slate-400">
+                      <span className="font-bold text-cyan-200">{dailyText(lang, "why")}:</span> {lang === "th" ? item.whyItMatters : item.impact || item.whyItMatters}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {item.tags.slice(0, 5).map((tag) => <span key={tag} className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs font-bold text-slate-300">#{tag}</span>)}
+                    </div>
+                    <div className="mt-auto flex flex-wrap gap-2 pt-5">
+                      <Button asChild size="sm"><a href={item.sourceUrl} target="_blank" rel="noreferrer">{dailyText(lang, "readFull")}</a></Button>
+                      <Button size="sm" variant="secondary" disabled={isSending} onClick={() => void sendNewsToTelegram(item)}>{isSending ? dailyText(lang, "sendingTelegram") : dailyText(lang, "sendTelegram")}</Button>
+                      <Button size="sm" variant="outline" onClick={() => saveNews(item)}>{item.isSaved ? dailyText(lang, "saved") : dailyText(lang, "save")}</Button>
+                      <Button size="sm" variant="ghost" onClick={() => hideNews(item)}>{dailyText(lang, "hide")}</Button>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {dailyBrief && (
+          <section className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-cyan-200">{dailyText(lang, "subcategories")}</p>
+              <h2 className="mt-1 text-2xl font-black text-white">{dailyText(lang, "subcategoryDesc")}</h2>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {dailyBrief.categories.filter((category) => category.key !== "all").map((category) => {
+                const detail = getDailyBriefTopicDetail(category.key);
+                const note = lang === "th" ? detail.noteTh : detail.noteEn;
+                return (
+                  <Card key={category.key} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Badge tone="blue">{detail.icon} {dailyCategoryLabel(category.key, lang)}</Badge>
+                        <p className="mt-3 text-sm font-bold leading-6 text-white">{dailyCategoryDescription(category.key, lang)}</p>
+                      </div>
+                      <span className="shrink-0 rounded-xl border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-black text-cyan-100">{dailyCategoryCounts[category.key] ?? 0}</span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {dailyCategorySubtopics(category.key, lang).slice(0, 7).map((topic) => <span key={topic} className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-bold text-slate-300">{topic}</span>)}
+                    </div>
+                    {note && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/[0.08] p-3 text-xs leading-6 text-amber-100">{note}</p>}
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </section>
+
       <section className="grid gap-5 xl:grid-cols-[1.45fr_0.75fr]">
         <Card className="relative overflow-hidden p-6 sm:p-8">
           <div className="absolute -right-28 -top-28 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />

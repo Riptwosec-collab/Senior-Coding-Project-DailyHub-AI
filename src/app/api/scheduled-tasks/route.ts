@@ -21,12 +21,6 @@ function isLegacyLongReadTask(task: ScheduledTask) {
   return haystack.includes("long read") || haystack.includes("อ่านยาว");
 }
 
-function isRetiredLifestyleTask(task: ScheduledTask) {
-  const haystack = [task.name, task.type, task.dataSources.join(" ")].join(" ").toLowerCase();
-  const taskType = String(task.type);
-  return taskType === "Weekend Ideas" || taskType === "Lifestyle Ideas" || /weekend ideas|lifestyle ideas|ไอเดียวันหยุด|ไลฟ์สไตล์/.test(haystack);
-}
-
 export async function GET(request: Request) {
   try {
     const user = await getCurrentUser();
@@ -49,7 +43,7 @@ export async function GET(request: Request) {
       return matchesSearch && matchesType && matchesStatus && matchesActive;
     });
 
-    const normalizedTasks = tasks.filter((task) => !isLegacyLongReadTask(task) && !isRetiredLifestyleTask(task));
+    const normalizedTasks = tasks.filter((task) => !isLegacyLongReadTask(task));
     return Response.json({ success: true, data: normalizedTasks, meta: { total: normalizedTasks.length, user: user ? (user.isMock ? "mock" : "supabase") : "public-demo" } });
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "Failed to list tasks", 401, "BAD_REQUEST");
@@ -69,7 +63,6 @@ export async function POST(request: Request) {
 
     if (name.length < 3) return errorResponse("Task name must be at least 3 characters", 422, "VALIDATION_ERROR");
     if (candidateText.includes("long read") || candidateText.includes("อ่านยาว")) return errorResponse("Legacy long-read tasks are archived and cannot be created", 422, "VALIDATION_ERROR");
-    if (/weekend ideas|lifestyle ideas|ไอเดียวันหยุด|ไลฟ์สไตล์/.test(candidateText)) return errorResponse("This retired task category is no longer available in NimbusDaily", 422, "VALIDATION_ERROR");
 
     const task = await createScheduledTask({
       userId: user.id,

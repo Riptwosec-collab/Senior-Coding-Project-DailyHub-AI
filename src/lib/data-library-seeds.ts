@@ -1,4 +1,4 @@
-export type LibraryTopicKey = "daily" | "product" | "market" | "email" | "concert" | "football" | "publicAlerts" | "travelDeals" | "longread";
+export type LibraryTopicKey = "daily" | "product" | "market" | "email" | "concert" | "football" | "publicAlerts" | "travelDeals" | "lifestyle";
 
 export type LibrarySeedSection = {
   heading: string;
@@ -258,15 +258,15 @@ export const DATA_LIBRARY_SEED_ITEMS: LibrarySeedItem[] = [
     updatedAt: UPDATED_AT,
   },
   {
-    id: "longread-ai-workflow",
-    topic: "longread",
-    icon: "📚",
-    titleTh: "Long Read: ออกแบบระบบสรุปข้อมูลแบบ Telegram สั้น + Web อ่านเต็ม",
-    titleEn: "Long Read: Telegram summary plus full web library",
-    summaryTh: "ระบบที่ดีควรส่ง Telegram แบบสั้นและให้เว็บเป็นพื้นที่อ่านเต็ม แยกหมวด ค้นหาได้ และเปิดอ่านเป็นเรื่อง ๆ ได้ ไม่ให้ข้อมูลหายหลังแจ้งเตือน",
-    summaryEn: "A good system sends compact Telegram summaries while keeping full searchable categorized content on the web.",
-    source: "Nimbus Long Read Desk",
-    category: "Product Design / Automation",
+    id: "lifestyle-web-full-read",
+    topic: "lifestyle",
+    icon: "💡",
+    titleTh: "ไลฟ์สไตล์: สรุป Telegram สั้น พร้อมหน้าเว็บอ่านรายละเอียดเต็ม",
+    titleEn: "Lifestyle: short Telegram summary plus full web reading",
+    summaryTh: "หมวดไลฟ์สไตล์ควรส่ง Telegram แบบสั้นและให้เว็บเป็นพื้นที่อ่านรายละเอียดเต็ม แยกหมวด ค้นหาได้ และเปิดอ่านเป็นเรื่อง ๆ ได้ ไม่ให้ข้อมูลหายหลังแจ้งเตือน",
+    summaryEn: "The lifestyle hub sends compact Telegram summaries while keeping full searchable categorized content on the web.",
+    source: "Nimbus Lifestyle Desk",
+    category: "Lifestyle / Web Reading",
     priority: 88,
     readTime: "5 นาที",
     tags: ["Product Design", "Automation", "Data Library"],

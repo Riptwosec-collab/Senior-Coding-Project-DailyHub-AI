@@ -30,7 +30,7 @@ const FILTER_TABS = {
 const copy = {
   th: {
     title: "งานอัตโนมัติ",
-    desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ และโปรเดินทาง",
+    desc: "จัดการ Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, ประกาศรัฐ, โปรเดินทาง และไลฟ์สไตล์",
     createTask: "สร้างงาน",
     refresh: "รีเฟรช",
     testTelegram: "ทดสอบ Telegram",
@@ -58,7 +58,7 @@ const copy = {
   },
   en: {
     title: "Scheduled Tasks",
-    desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, and travel deals.",
+    desc: "Manage Daily Brief, Email Digest, US Stock News, Concert Alerts, Football Recap, public alerts, travel deals, and lifestyle ideas.",
     createTask: "Create Task",
     refresh: "Refresh",
     testTelegram: "Test Telegram",
@@ -88,7 +88,7 @@ const copy = {
 
 function isLegacyHiddenTask(task: ScheduledTask) {
   const haystack = [task.name, task.type, task.dataSources.join(" ")].join(" ").toLowerCase();
-  return haystack.includes("long read") || haystack.includes("อ่านยาว") || /weekend ideas|lifestyle ideas|ไอเดียวันหยุด|ไลฟ์สไตล์/.test(haystack);
+  return haystack.includes("long read") || haystack.includes("อ่านยาว");
 }
 
 export function ScheduledTasksProView() {

@@ -26,7 +26,7 @@ const categoryOptions: Array<"All" | NotificationCategory> = [
   "Email",
   "Sale",
   "Football",
-  "Long Read",
+  "Lifestyle",
   "Concert",
   "Public Alerts",
   "Travel Deals",
@@ -41,7 +41,7 @@ function toCategory(type: string): NotificationCategory {
   if (type === "Email Monitor") return "Email";
   if (type === "Sale Monitor") return "Sale";
   if (type === "World Cup Recap") return "Football";
-  if (type === "Weekend Long Read") return "Long Read";
+  if (type === "Weekend Long Read") return "Lifestyle";
   if (type === "Concert Alerts") return "Concert";
   if (type === "Public Alerts") return "Public Alerts";
   if (type === "Travel Deals") return "Travel Deals";
@@ -153,7 +153,7 @@ export function NotificationsView({ initialNotifications, tasks, taskRuns }: Not
               Notifications
             </h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
-              Inbox สำหรับผลลัพธ์จาก Scheduled Tasks แยกหมวด Daily Brief, Email, Sale, Football, Long Read, Concert, ประกาศรัฐ และโปรเดินทาง พร้อม Read/Unread, Important และ Priority Score
+              Inbox สำหรับผลลัพธ์จาก Scheduled Tasks แยกหมวด Daily Brief, Email, Sale, Football, Lifestyle, Concert, ประกาศรัฐ และโปรเดินทาง พร้อม Read/Unread, Important และ Priority Score
             </p>
           </div>
         </Card>

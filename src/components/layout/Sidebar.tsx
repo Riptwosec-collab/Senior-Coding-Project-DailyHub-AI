@@ -13,6 +13,7 @@ const navItems: NavItem[] = [
   { href: "/", key: "nav_home", icon: "H" },
   { href: "/dashboard", key: "nav_dashboard", icon: "D" },
   { href: "/daily", key: "nav_daily", icon: "DY" },
+  { href: "/stocks", key: "nav_stocks", icon: "ST" },
   { href: "/concerts", key: "nav_concerts", icon: "🎤" },
   { href: "/movies", key: "nav_movies", icon: "🎬" },
   { href: "/events", key: "nav_events", icon: "EV" },
